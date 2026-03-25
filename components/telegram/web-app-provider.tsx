@@ -102,7 +102,26 @@ export function WebAppProvider({ children }: { children: ReactNode }) {
         setCtx({ webApp: sdk, isReady: true });
 
         if (sdk.initData) {
-          authenticate(sdk.initData);
+          await authenticate(sdk.initData);
+        }
+
+        // Handle invite deeplink: startapp=join_<token>
+        const startParam = sdk.initDataUnsafe?.start_param;
+        if (startParam?.startsWith("join_")) {
+          const inviteToken = startParam.slice(5);
+          try {
+            const res = await fetch("/api/invite/resolve", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ inviteToken }),
+            });
+            const data = await res.json();
+            if (data.ok) {
+              router.replace(`/groups/${data.groupId}`);
+            }
+          } catch {
+            // silently fail — user stays on home
+          }
         }
       } catch {
         setCtx({ webApp: null, isReady: false });
