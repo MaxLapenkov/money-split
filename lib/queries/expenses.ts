@@ -49,6 +49,23 @@ export async function createExpenseWithSplits(data: {
   };
 }
 
+export async function getLatestExpenseIdForGroup(
+  groupId: string
+): Promise<string | null> {
+  const sb = createServiceClient();
+
+  const { data, error } = await sb
+    .from("expenses")
+    .select("id")
+    .eq("group_id", groupId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return (data?.id as string | undefined) ?? null;
+}
+
 export async function getExpensesByGroupId(
   groupId: string
 ): Promise<DbExpense[]> {

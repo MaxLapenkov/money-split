@@ -6,9 +6,20 @@ import {
   getExpensesByGroupId,
   getSplitsByGroupId,
 } from "@/lib/queries/expenses";
-import { getSettlementsByGroupId } from "@/lib/queries/settlements";
-import { getViewEventsForGroup } from "@/lib/queries/view-events";
-import { calculateBalances, calculateSettlements } from "@/lib/settlement";
+import {
+  getSettlementsByGroupId,
+  upsertSettlements,
+} from "@/lib/queries/settlements";
+import {
+  getViewEventsForGroup,
+  recordInitialGroupView,
+} from "@/lib/queries/view-events";
+import {
+  applyPaidSettlementsToBalances,
+  calculateBalances,
+  calculateSettlements,
+  netBalancesSumToZero,
+} from "@/lib/settlement";
 import { formatMoney } from "@/lib/money";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -16,6 +27,7 @@ import { LinkButton } from "@/components/ui/link-button";
 import { InviteButton } from "@/components/groups/invite-button";
 import { BindParticipantForm } from "@/components/groups/bind-participant-form";
 import { MarkPaidButton } from "@/components/groups/mark-paid-button";
+import { AcknowledgeGroupButton } from "@/components/groups/acknowledge-group-button";
 
 export default async function GroupPage({
   params,
@@ -53,11 +65,17 @@ export default async function GroupPage({
 
   const myMemberId = binding.group_member_id;
 
-  const [expenses, splits, dbSettlements, viewEvents] = await Promise.all([
+  await recordInitialGroupView({
+    groupId,
+    userId: session.userId,
+    groupMemberId: myMemberId,
+  });
+
+  const [expenses, splits, viewEvents, settlementsBeforeSync] = await Promise.all([
     getExpensesByGroupId(groupId),
     getSplitsByGroupId(groupId),
-    getSettlementsByGroupId(groupId),
     getViewEventsForGroup(groupId),
+    getSettlementsByGroupId(groupId),
   ]);
 
   const hasExpenses = expenses.length > 0;
@@ -91,9 +109,30 @@ export default async function GroupPage({
     );
   }
 
-  // State B: expenses exist
+  // State B: expense-based balances minus already paid transfers → remaining suggested only
   const balances = calculateBalances(members, expenses, splits);
-  const suggestions = calculateSettlements(balances);
+  const paidEdges = settlementsBeforeSync
+    .filter((s) => s.status === "paid")
+    .map((s) => ({
+      fromGroupMemberId: s.from_group_member_id,
+      toGroupMemberId: s.to_group_member_id,
+      amountMinor: s.amount_minor,
+    }));
+  const balancesAfterPaid = applyPaidSettlementsToBalances(balances, paidEdges);
+  const suggestions = calculateSettlements(balancesAfterPaid);
+
+  if (group.currency === "RUB" && netBalancesSumToZero(balances)) {
+    await upsertSettlements(
+      groupId,
+      suggestions.map((s) => ({
+        fromGroupMemberId: s.fromGroupMemberId,
+        toGroupMemberId: s.toGroupMemberId,
+        amountMinor: s.amountMinor,
+      }))
+    );
+  }
+
+  const dbSettlements = await getSettlementsByGroupId(groupId);
 
   const myBalance = balances.find((b) => b.groupMemberId === myMemberId);
   const totalSpent = expenses
@@ -118,6 +157,9 @@ export default async function GroupPage({
   const viewMap = new Map(
     viewEvents.map((v) => [v.group_member_id ?? "", v.status]),
   );
+
+  const myViewEvent = viewEvents.find((v) => v.user_id === session.userId);
+  const showAcknowledgeButton = myViewEvent?.status === "viewed";
 
   return (
     <main className="flex flex-1 flex-col px-4 py-4 mx-auto w-full max-w-[640px] gap-3">
@@ -184,11 +226,6 @@ export default async function GroupPage({
             ))
           )}
 
-          {suggestions.length > 0 && activeSettlements.length === 0 && (
-            <p className="text-[0.8125rem] text-muted-foreground">
-              Расчёты пересчитаются после новых трат
-            </p>
-          )}
         </CardContent>
       </Card>
 
@@ -200,6 +237,9 @@ export default async function GroupPage({
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">
+          {showAcknowledgeButton && (
+            <AcknowledgeGroupButton groupId={groupId} />
+          )}
           {members.map((member) => {
             const status = viewMap.get(member.id);
             return (

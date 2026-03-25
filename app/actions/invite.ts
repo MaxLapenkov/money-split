@@ -20,6 +20,9 @@ import {
   createBinding,
   getBindingForUser,
 } from "@/lib/queries/bindings";
+import { getGroupMember } from "@/lib/queries/groups";
+import { getLatestExpenseIdForGroup } from "@/lib/queries/expenses";
+import { recordInitialGroupView } from "@/lib/queries/view-events";
 
 export async function resolveInvite(
   input: ResolveInviteInput
@@ -102,10 +105,32 @@ export async function bindParticipant(
       return { ok: true, groupMemberId: existing.group_member_id };
     }
 
+    const targetMember = await getGroupMember(
+      groupId,
+      parsed.data.groupMemberId
+    );
+    if (!targetMember || targetMember.role === "owner") {
+      return {
+        ok: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Нельзя выбрать организатора по приглашению",
+        },
+      };
+    }
+
     const binding = await createBinding({
       groupId,
       groupMemberId: parsed.data.groupMemberId,
       userId: session.userId,
+    });
+
+    const lastExpenseId = await getLatestExpenseIdForGroup(groupId);
+    await recordInitialGroupView({
+      groupId,
+      userId: session.userId,
+      groupMemberId: binding.group_member_id,
+      lastSeenExpenseId: lastExpenseId,
     });
 
     return { ok: true, groupMemberId: binding.group_member_id };

@@ -32,7 +32,7 @@ export function InviteButton({ groupId }: InviteButtonProps) {
 
       if (webApp) {
         webApp.openTelegramLink(
-          `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent("Присоединяйся к нашей группе в Money Split!")}`
+          `https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent("Присоединяйся к нашей группе в Money Split!")}`,
         );
         webApp.HapticFeedback.impactOccurred("medium");
       } else {
@@ -52,7 +52,7 @@ export function InviteButton({ groupId }: InviteButtonProps) {
       disabled={loading}
     >
       <Share2 className="size-4" />
-      {loading ? "Генерируем..." : "Пригласить друзей"}
+      {loading ? "Генерируем..." : "Пригласить участников"}
     </Button>
   );
 }

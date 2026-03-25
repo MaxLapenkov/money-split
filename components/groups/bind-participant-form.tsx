@@ -24,6 +24,8 @@ export function BindParticipantForm({
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const bindableMembers = members.filter((m) => m.role !== "owner");
+
   async function handleBind() {
     if (!selected) return;
     setLoading(true);
@@ -54,12 +56,18 @@ export function BindParticipantForm({
       <div className="flex flex-col gap-1">
         <h1 className="text-base font-semibold">Кто вы в группе?</h1>
         <p className="text-[0.9375rem] text-muted-foreground">
-          Выберите своё имя в группе «{groupName}»
+          Выберите своё имя среди участников группы «{groupName}».
         </p>
       </div>
 
+      {bindableMembers.length === 0 ? (
+        <p className="text-[0.9375rem] text-muted-foreground text-center py-4">
+          В группе пока только организатор. Попросите создателя добавить вас как
+          участника в настройках группы.
+        </p>
+      ) : (
       <div className="flex flex-col gap-2">
-        {members.map((member) => (
+        {bindableMembers.map((member) => (
           <button
             key={member.id}
             type="button"
@@ -80,10 +88,11 @@ export function BindParticipantForm({
           </button>
         ))}
       </div>
+      )}
 
       <Button
         onClick={handleBind}
-        disabled={!selected || loading}
+        disabled={!selected || loading || bindableMembers.length === 0}
         className="w-full"
         size="lg"
       >

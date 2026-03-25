@@ -44,6 +44,47 @@ export function calculateBalances(
   }));
 }
 
+/**
+ * Sum of netMinor must be 0 when splits fully cover each expense (integer kopecks).
+ */
+export function netBalancesSumToZero(balances: Balance[]): boolean {
+  const sum = balances.reduce((s, b) => s + b.netMinor, 0);
+  return sum === 0;
+}
+
+/** One completed transfer (DB `paid` row). Adjusts nets so greedy sees remaining debt. */
+export interface PaidSettlementEdge {
+  fromGroupMemberId: string;
+  toGroupMemberId: string;
+  amountMinor: number;
+}
+
+/**
+ * Subtract effect of already paid settlements from expense-derived balances.
+ * `from` owed → paying increases their net; `to` was owed → receiving payment decreases their net.
+ */
+export function applyPaidSettlementsToBalances(
+  balances: Balance[],
+  paid: PaidSettlementEdge[]
+): Balance[] {
+  if (paid.length === 0) return balances;
+  const net = new Map(balances.map((b) => [b.groupMemberId, b.netMinor]));
+  for (const p of paid) {
+    net.set(
+      p.fromGroupMemberId,
+      (net.get(p.fromGroupMemberId) ?? 0) + p.amountMinor
+    );
+    net.set(
+      p.toGroupMemberId,
+      (net.get(p.toGroupMemberId) ?? 0) - p.amountMinor
+    );
+  }
+  return balances.map((b) => ({
+    ...b,
+    netMinor: net.get(b.groupMemberId) ?? 0,
+  }));
+}
+
 export function calculateSettlements(balances: Balance[]): SettlementSuggestion[] {
   const debtors = balances
     .filter((b) => b.netMinor < 0)

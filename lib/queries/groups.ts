@@ -51,6 +51,23 @@ export async function getGroupById(
   return data as DbGroup | null;
 }
 
+export async function getGroupMember(
+  groupId: string,
+  memberId: string
+): Promise<DbGroupMember | null> {
+  const sb = createServiceClient();
+
+  const { data, error } = await sb
+    .from("group_members")
+    .select("*")
+    .eq("group_id", groupId)
+    .eq("id", memberId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as DbGroupMember | null;
+}
+
 export async function getGroupMembers(
   groupId: string
 ): Promise<DbGroupMember[]> {

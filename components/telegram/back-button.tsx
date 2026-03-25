@@ -1,22 +1,28 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useWebApp } from "./web-app-provider";
-
-const START_ROUTE = "/";
 
 export function TelegramBackButton() {
   const { webApp } = useWebApp();
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     if (!webApp) return;
 
-    const onBack = () => history.back();
-    const isStart = pathname === START_ROUTE;
+    const isHome = pathname === "/";
 
-    if (isStart) {
+    const onBack = () => {
+      if (window.history.length > 1) {
+        router.back();
+      } else {
+        router.push("/");
+      }
+    };
+
+    if (isHome) {
       webApp.BackButton.hide();
       webApp.BackButton.offClick(onBack);
     } else {
@@ -27,7 +33,7 @@ export function TelegramBackButton() {
     return () => {
       webApp.BackButton.offClick(onBack);
     };
-  }, [webApp, pathname]);
+  }, [webApp, pathname, router]);
 
   return null;
 }

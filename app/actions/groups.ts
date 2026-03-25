@@ -7,6 +7,7 @@ import { createGroupInputSchema } from "@/lib/validation/groups";
 import { requireSession, AuthRequiredError } from "@/lib/auth/require-session";
 import { createGroup as dbCreateGroup } from "@/lib/queries/groups";
 import { createBinding } from "@/lib/queries/bindings";
+import { recordInitialGroupView } from "@/lib/queries/view-events";
 
 export async function createGroup(
   input: CreateGroupInput
@@ -40,6 +41,12 @@ export async function createGroup(
         groupId: result.group.id,
         groupMemberId: ownerMember.id,
         userId: session.userId,
+      });
+      await recordInitialGroupView({
+        groupId: result.group.id,
+        userId: session.userId,
+        groupMemberId: ownerMember.id,
+        lastSeenExpenseId: null,
       });
     }
 
