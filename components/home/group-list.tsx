@@ -20,9 +20,6 @@ export async function GroupList() {
         <p className="text-[0.9375rem] text-muted-foreground">
           У вас пока нет групп
         </p>
-        <LinkButton href="/groups/new" variant="outline" size="sm">
-          Создать первую группу
-        </LinkButton>
       </div>
     );
   }
