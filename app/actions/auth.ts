@@ -1,24 +1,24 @@
 "use server";
 
-import type { ActionResult } from "@/lib/validation/common";
-import type {
-  AuthTelegramInput,
-  AuthTelegramSuccess,
-} from "@/lib/validation/auth";
-import { authTelegramInputSchema } from "@/lib/validation/auth";
+import { getSession } from "@/lib/auth/session";
+import type { ApiError } from "@/lib/validation/common";
 
-export async function authenticateTelegram(
-  input: AuthTelegramInput
-): Promise<ActionResult<AuthTelegramSuccess>> {
-  const parsed = authTelegramInputSchema.safeParse(input);
+interface SessionResult {
+  userId: string;
+  telegramId: string;
+}
 
-  if (!parsed.success) {
+export async function getSessionAction(): Promise<
+  { ok: true } & SessionResult | ApiError
+> {
+  const session = await getSession();
+
+  if (!session) {
     return {
       ok: false,
-      error: { code: "VALIDATION_ERROR", message: "Invalid auth payload" },
+      error: { code: "UNAUTHORIZED", message: "No active session" },
     };
   }
 
-  // TODO: implement Telegram initData validation + session in Phase 2
-  return { ok: false, error: { code: "NOT_IMPLEMENTED", message: "Not implemented yet" } };
+  return { ok: true, userId: session.userId, telegramId: session.telegramId };
 }

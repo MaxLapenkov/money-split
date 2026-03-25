@@ -1,18 +1,17 @@
 import { LinkButton } from "@/components/ui/link-button";
 import { ChevronRight } from "lucide-react";
-
-interface GroupSummary {
-  id: string;
-  name: string;
-}
-
-async function getGroups(): Promise<GroupSummary[]> {
-  // TODO: fetch from Supabase in Phase 3
-  return [];
-}
+import { getSession } from "@/lib/auth/session";
+import { getGroupsByUserId } from "@/lib/queries/groups";
+import { GroupListSkeleton } from "./group-list-skeleton";
 
 export async function GroupList() {
-  const groups = await getGroups();
+  const session = await getSession();
+
+  if (!session) {
+    return <GroupListSkeleton />;
+  }
+
+  const groups = await getGroupsByUserId(session.userId);
 
   if (groups.length === 0) {
     return (
@@ -20,6 +19,9 @@ export async function GroupList() {
         <p className="text-[0.9375rem] text-muted-foreground">
           У вас пока нет групп
         </p>
+        <LinkButton href="/groups/new" variant="outline" size="sm">
+          Создать первую группу
+        </LinkButton>
       </div>
     );
   }

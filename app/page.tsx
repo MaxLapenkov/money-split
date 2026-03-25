@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { LinkButton } from "@/components/ui/link-button";
+import { CreateGroupButton } from "@/components/home/create-group-button";
 import { GroupList } from "@/components/home/group-list";
 import { GroupListSkeleton } from "@/components/home/group-list-skeleton";
 
@@ -15,9 +15,7 @@ export default function HomePage() {
         </p>
       </section>
 
-      <LinkButton href="/groups/new" size="lg" className="w-full">
-        Создать группу
-      </LinkButton>
+      <CreateGroupButton />
 
       <Separator />
 

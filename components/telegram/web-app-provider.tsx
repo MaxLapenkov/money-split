@@ -5,8 +5,10 @@ import {
   useContext,
   useEffect,
   useState,
+  useCallback,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 
 type WebApp = typeof import("@twa-dev/sdk").default;
 
@@ -24,11 +26,57 @@ export function useWebApp() {
   return useContext(WebAppContext);
 }
 
+interface AuthState {
+  status: "idle" | "loading" | "authenticated" | "error";
+  userId: string | null;
+}
+
+const AuthContext = createContext<AuthState>({
+  status: "idle",
+  userId: null,
+});
+
+export function useAuth() {
+  return useContext(AuthContext);
+}
+
 export function WebAppProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+
   const [ctx, setCtx] = useState<WebAppContextValue>({
     webApp: null,
     isReady: false,
   });
+
+  const [auth, setAuth] = useState<AuthState>({
+    status: "idle",
+    userId: null,
+  });
+
+  const authenticate = useCallback(async (initData: string) => {
+    setAuth({ status: "loading", userId: null });
+
+    try {
+      const res = await fetch("/api/auth/telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData }),
+      });
+
+      const data = await res.json();
+
+      if (data.ok) {
+        setAuth({ status: "authenticated", userId: data.userId });
+        router.refresh();
+      } else {
+        console.error("Auth failed:", data.error);
+        setAuth({ status: "error", userId: null });
+      }
+    } catch (err) {
+      console.error("Auth request error:", err);
+      setAuth({ status: "error", userId: null });
+    }
+  }, [router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +100,10 @@ export function WebAppProvider({ children }: { children: ReactNode }) {
         sdk.onEvent("themeChanged", applyTheme);
 
         setCtx({ webApp: sdk, isReady: true });
+
+        if (sdk.initData) {
+          authenticate(sdk.initData);
+        }
       } catch {
         setCtx({ webApp: null, isReady: false });
       }
@@ -62,9 +114,11 @@ export function WebAppProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authenticate]);
 
   return (
-    <WebAppContext.Provider value={ctx}>{children}</WebAppContext.Provider>
+    <WebAppContext.Provider value={ctx}>
+      <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>
+    </WebAppContext.Provider>
   );
 }

@@ -1,21 +1,62 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/validation/common";
 import type { CreateGroupInput } from "@/lib/validation/groups";
 import { createGroupInputSchema } from "@/lib/validation/groups";
+import { requireSession, AuthRequiredError } from "@/lib/auth/require-session";
+import { createGroup as dbCreateGroup } from "@/lib/queries/groups";
+import { createBinding } from "@/lib/queries/bindings";
 
 export async function createGroup(
   input: CreateGroupInput
 ): Promise<ActionResult<{ ok: true; groupId: string }>> {
-  const parsed = createGroupInputSchema.safeParse(input);
+  try {
+    const session = await requireSession();
 
-  if (!parsed.success) {
+    const parsed = createGroupInputSchema.safeParse(input);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: { code: "VALIDATION_ERROR", message: "Invalid group payload" },
+      };
+    }
+
+    const { name, participants } = parsed.data;
+
+    const result = await dbCreateGroup({
+      name,
+      createdBy: session.userId,
+      participants: participants.map((p, i) => ({
+        displayName: p.displayName,
+        role: i === 0 ? "owner" : "member",
+      })),
+    });
+
+    // Auto-bind the creator to the first participant (owner)
+    const ownerMember = result.members.find((m) => m.role === "owner");
+    if (ownerMember) {
+      await createBinding({
+        groupId: result.group.id,
+        groupMemberId: ownerMember.id,
+        userId: session.userId,
+      });
+    }
+
+    revalidatePath("/");
+
+    return { ok: true, groupId: result.group.id };
+  } catch (err) {
+    if (err instanceof AuthRequiredError) {
+      return {
+        ok: false,
+        error: { code: "UNAUTHORIZED", message: "Authentication required" },
+      };
+    }
+    console.error("createGroup error:", err);
     return {
       ok: false,
-      error: { code: "VALIDATION_ERROR", message: "Invalid group payload" },
+      error: { code: "INTERNAL_ERROR", message: "Failed to create group" },
     };
   }
-
-  // TODO: implement with Supabase in Phase 1
-  return { ok: false, error: { code: "NOT_IMPLEMENTED", message: "Not implemented yet" } };
 }
