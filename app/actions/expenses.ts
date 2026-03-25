@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/validation/common";
+import { revalidateGroupData } from "@/lib/cache/revalidate";
 import type { CreateExpenseInput } from "@/lib/validation/expenses";
 import { createExpenseInputSchema } from "@/lib/validation/expenses";
 import { requireSession, AuthRequiredError } from "@/lib/auth/require-session";
@@ -51,7 +51,7 @@ export async function createExpense(
       splits,
     });
 
-    revalidatePath(`/groups/${groupId}`);
+    revalidateGroupData(groupId);
 
     return { ok: true, expenseId: result.expense.id };
   } catch (err) {

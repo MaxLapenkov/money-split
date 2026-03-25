@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { getGroupById, getGroupMembers } from "@/lib/queries/groups";
-import { getExpensesByGroupId } from "@/lib/queries/expenses";
+import {
+  fetchExpensesByGroupId,
+  fetchGroupById,
+  fetchGroupMembers,
+} from "@/lib/queries/cached";
 import { formatSignedExpenseAmount } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/link-button";
@@ -77,9 +80,9 @@ export default async function AllExpensesPage({
   if (!session) redirect(`/groups/${groupId}`);
 
   const [group, members, expenses] = await Promise.all([
-    getGroupById(groupId),
-    getGroupMembers(groupId),
-    getExpensesByGroupId(groupId),
+    fetchGroupById(groupId),
+    fetchGroupMembers(groupId),
+    fetchExpensesByGroupId(groupId),
   ]);
 
   if (!group) redirect("/");

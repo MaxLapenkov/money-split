@@ -1,7 +1,7 @@
 import { LinkButton } from "@/components/ui/link-button";
 import { ChevronRight } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
-import { getGroupsByUserId } from "@/lib/queries/groups";
+import { fetchGroupsForUser } from "@/lib/queries/cached";
 import { GroupListSkeleton } from "./group-list-skeleton";
 
 export async function GroupList() {
@@ -11,7 +11,7 @@ export async function GroupList() {
     return <GroupListSkeleton />;
   }
 
-  const groups = await getGroupsByUserId(session.userId);
+  const groups = await fetchGroupsForUser(session.userId);
 
   if (groups.length === 0) {
     return (

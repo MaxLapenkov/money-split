@@ -13,6 +13,10 @@ import {
 } from "@/lib/validation/invite";
 import { requireSession, AuthRequiredError } from "@/lib/auth/require-session";
 import {
+  revalidateGroupData,
+  revalidateUserGroupsList,
+} from "@/lib/cache/revalidate";
+import {
   resolveInviteToken,
   createInviteToken,
 } from "@/lib/queries/invite";
@@ -132,6 +136,9 @@ export async function bindParticipant(
       groupMemberId: binding.group_member_id,
       lastSeenExpenseId: lastExpenseId,
     });
+
+    revalidateGroupData(groupId);
+    revalidateUserGroupsList(session.userId);
 
     return { ok: true, groupMemberId: binding.group_member_id };
   } catch (err) {

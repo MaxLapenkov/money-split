@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { getGroupById, getGroupMembers } from "@/lib/queries/groups";
-import { getBindingForUser } from "@/lib/queries/bindings";
+import {
+  fetchBindingForUser,
+  fetchGroupById,
+  fetchGroupMembers,
+} from "@/lib/queries/cached";
 import { CreateExpenseForm } from "@/components/expenses/create-expense-form";
 
 export default async function CreateExpensePage({
@@ -15,9 +18,9 @@ export default async function CreateExpensePage({
   if (!session) redirect(`/groups/${groupId}`);
 
   const [group, members, binding] = await Promise.all([
-    getGroupById(groupId),
-    getGroupMembers(groupId),
-    getBindingForUser(groupId, session.userId),
+    fetchGroupById(groupId),
+    fetchGroupMembers(groupId),
+    fetchBindingForUser(groupId, session.userId),
   ]);
 
   if (!group) redirect("/");

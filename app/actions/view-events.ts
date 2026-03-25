@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/validation/common";
+import { revalidateGroupData } from "@/lib/cache/revalidate";
 import { requireSession, AuthRequiredError } from "@/lib/auth/require-session";
 import { getBindingForUser } from "@/lib/queries/bindings";
 import { acknowledgeViewEvent } from "@/lib/queries/view-events";
@@ -17,7 +17,7 @@ export async function acknowledgeGroupAction(
       session.userId,
       binding?.group_member_id ?? null
     );
-    revalidatePath(`/groups/${groupId}`);
+    revalidateGroupData(groupId);
     return { ok: true };
   } catch (err) {
     if (err instanceof AuthRequiredError) {

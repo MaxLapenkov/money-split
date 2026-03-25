@@ -1,7 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/validation/common";
+import {
+  revalidateGroupData,
+  revalidateUserGroupsList,
+} from "@/lib/cache/revalidate";
 import type { CreateGroupInput } from "@/lib/validation/groups";
 import { createGroupInputSchema } from "@/lib/validation/groups";
 import { requireSession, AuthRequiredError } from "@/lib/auth/require-session";
@@ -50,7 +53,8 @@ export async function createGroup(
       });
     }
 
-    revalidatePath("/");
+    revalidateUserGroupsList(session.userId);
+    revalidateGroupData(result.group.id);
 
     return { ok: true, groupId: result.group.id };
   } catch (err) {

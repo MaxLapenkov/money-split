@@ -1,7 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/lib/validation/common";
+import { revalidateGroupData } from "@/lib/cache/revalidate";
 import { requireSession, AuthRequiredError } from "@/lib/auth/require-session";
 import { markSettlementPaid } from "@/lib/queries/settlements";
 
@@ -12,10 +12,9 @@ export async function markSettlementPaidAction(
   try {
     await requireSession();
     await markSettlementPaid(settlementId);
-    revalidatePath(`/groups/${groupId}`);
+    revalidateGroupData(groupId);
     return { ok: true };
   } catch (err) {
-    console.log(err);
     if (err instanceof AuthRequiredError) {
       return {
         ok: false,

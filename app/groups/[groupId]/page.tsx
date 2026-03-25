@@ -1,19 +1,18 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/session";
-import { getGroupById, getGroupMembers } from "@/lib/queries/groups";
-import { getBindingForUser } from "@/lib/queries/bindings";
 import {
-  getExpensesByGroupId,
-  getSplitsByGroupId,
-} from "@/lib/queries/expenses";
+  fetchBindingForUser,
+  fetchExpensesByGroupId,
+  fetchGroupById,
+  fetchGroupMembers,
+  fetchSplitsByGroupId,
+  fetchViewEventsForGroup,
+} from "@/lib/queries/cached";
 import {
   getSettlementsByGroupId,
   upsertSettlements,
 } from "@/lib/queries/settlements";
-import {
-  getViewEventsForGroup,
-  recordInitialGroupView,
-} from "@/lib/queries/view-events";
+import { recordInitialGroupView } from "@/lib/queries/view-events";
 import {
   applyPaidSettlementsToBalances,
   calculateBalances,
@@ -42,8 +41,8 @@ export default async function GroupPage({
   }
 
   const [group, members] = await Promise.all([
-    getGroupById(groupId),
-    getGroupMembers(groupId),
+    fetchGroupById(groupId),
+    fetchGroupMembers(groupId),
   ]);
 
   if (!group) {
@@ -51,7 +50,7 @@ export default async function GroupPage({
   }
 
   // Check binding — if none, show participant selection
-  const binding = await getBindingForUser(groupId, session.userId);
+  const binding = await fetchBindingForUser(groupId, session.userId);
 
   if (!binding) {
     return (
@@ -71,12 +70,13 @@ export default async function GroupPage({
     groupMemberId: myMemberId,
   });
 
-  const [expenses, splits, viewEvents, settlementsBeforeSync] = await Promise.all([
-    getExpensesByGroupId(groupId),
-    getSplitsByGroupId(groupId),
-    getViewEventsForGroup(groupId),
-    getSettlementsByGroupId(groupId),
-  ]);
+  const [expenses, splits, viewEvents, settlementsBeforeSync] =
+    await Promise.all([
+      fetchExpensesByGroupId(groupId),
+      fetchSplitsByGroupId(groupId),
+      fetchViewEventsForGroup(groupId),
+      getSettlementsByGroupId(groupId),
+    ]);
 
   const hasExpenses = expenses.length > 0;
 
@@ -128,26 +128,45 @@ export default async function GroupPage({
         fromGroupMemberId: s.fromGroupMemberId,
         toGroupMemberId: s.toGroupMemberId,
         amountMinor: s.amountMinor,
-      }))
+      })),
     );
   }
 
   const dbSettlements = await getSettlementsByGroupId(groupId);
 
-  const myBalance = balances.find((b) => b.groupMemberId === myMemberId);
+  const myBalanceAfterPaid = balancesAfterPaid.find(
+    (b) => b.groupMemberId === myMemberId,
+  );
   const totalSpent = expenses
     .filter((e) => e.type === "expense")
     .reduce((s, e) => s + e.amount_minor, 0);
 
-  const myPaid = expenses
+  const myPaidFromExpenses = expenses
     .filter((e) => e.type === "expense" && e.group_member_id === myMemberId)
     .reduce((s, e) => s + e.amount_minor, 0);
+
+  const paidSettlements = dbSettlements.filter((st) => st.status === "paid");
+
+  const myPaidAsDebtor = paidSettlements
+    .filter((st) => st.from_group_member_id === myMemberId)
+    .reduce((s, st) => s + Number(st.amount_minor), 0);
+
+  const myReceivedDebtPayments = paidSettlements
+    .filter((st) => st.to_group_member_id === myMemberId)
+    .reduce((s, st) => s + Number(st.amount_minor), 0);
+
+  /** Расходы как плательщик + ваши переводы по долгам − полученные от других погашения */
+  const myPaid = Math.max(
+    0,
+    myPaidFromExpenses + myPaidAsDebtor - myReceivedDebtPayments,
+  );
 
   const mySplitTotal = splits
     .filter((s) => s.group_member_id === myMemberId)
     .reduce((s, sp) => s + sp.amount_minor, 0);
 
-  const owedToMe = Math.max(0, myBalance?.netMinor ?? 0);
+  /** Остаток долга перед вами после учёта отмеченных переводов */
+  const owedToMe = Math.max(0, myBalanceAfterPaid?.netMinor ?? 0);
 
   const activeSettlements = dbSettlements.filter(
     (s) => s.status === "suggested",
@@ -225,7 +244,6 @@ export default async function GroupPage({
               </div>
             ))
           )}
-
         </CardContent>
       </Card>
 
