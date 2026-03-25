@@ -45,6 +45,12 @@ export async function getSettlementsByGroupId(
   return (data ?? []) as DbSettlement[];
 }
 
+export type UpsertSettlementsResult = {
+  suggestedRows: DbSettlement[];
+  /** true если были delete/insert suggested-строк */
+  mutated: boolean;
+};
+
 export async function upsertSettlements(
   groupId: string,
   settlements: {
@@ -52,7 +58,7 @@ export async function upsertSettlements(
     toGroupMemberId: string;
     amountMinor: number;
   }[]
-): Promise<DbSettlement[]> {
+): Promise<UpsertSettlementsResult> {
   const sb = createServiceClient();
 
   const { data: existingRows, error: existingErr } = await sb
@@ -81,7 +87,10 @@ export async function upsertSettlements(
 
   // Keep stable row ids so "Оплачено" still works after router.refresh / revalidation
   if (edgesEqual(currentEdges, desiredEdges)) {
-    return (existingRows ?? []) as DbSettlement[];
+    return {
+      suggestedRows: (existingRows ?? []) as DbSettlement[],
+      mutated: false,
+    };
   }
 
   const { error: delErr } = await sb
@@ -92,7 +101,9 @@ export async function upsertSettlements(
 
   if (delErr) throw delErr;
 
-  if (settlements.length === 0) return [];
+  if (settlements.length === 0) {
+    return { suggestedRows: [], mutated: true };
+  }
 
   const payload = settlements.map((s) => ({
     group_id: groupId,
@@ -108,7 +119,10 @@ export async function upsertSettlements(
     .select();
 
   if (error) throw error;
-  return (data ?? []) as DbSettlement[];
+  return {
+    suggestedRows: (data ?? []) as DbSettlement[],
+    mutated: true,
+  };
 }
 
 export async function markSettlementPaid(

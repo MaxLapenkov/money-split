@@ -5,28 +5,15 @@ import {
   fetchExpensesByGroupId,
   fetchGroupById,
   fetchGroupMembers,
+  fetchSettlementsByGroupId,
   fetchSplitsByGroupId,
   fetchViewEventsForGroup,
 } from "@/lib/queries/cached";
-import {
-  getSettlementsByGroupId,
-  upsertSettlements,
-} from "@/lib/queries/settlements";
+import { resolveGroupSettlementsDisplay } from "@/lib/groups/resolve-group-settlements-display";
 import { recordInitialGroupView } from "@/lib/queries/view-events";
-import {
-  applyPaidSettlementsToBalances,
-  calculateBalances,
-  calculateSettlements,
-  netBalancesSumToZero,
-} from "@/lib/settlement";
-import { formatMoney } from "@/lib/money";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { LinkButton } from "@/components/ui/link-button";
-import { InviteButton } from "@/components/groups/invite-button";
 import { BindParticipantForm } from "@/components/groups/bind-participant-form";
-import { MarkPaidButton } from "@/components/groups/mark-paid-button";
-import { AcknowledgeGroupButton } from "@/components/groups/acknowledge-group-button";
+import { GroupDashboard } from "@/components/groups/group-dashboard";
+import { GroupEmptyOnboarding } from "@/components/groups/group-empty-onboarding";
 
 export default async function GroupPage({
   params,
@@ -49,7 +36,6 @@ export default async function GroupPage({
     redirect("/");
   }
 
-  // Check binding — if none, show participant selection
   const binding = await fetchBindingForUser(groupId, session.userId);
 
   if (!binding) {
@@ -70,253 +56,42 @@ export default async function GroupPage({
     groupMemberId: myMemberId,
   });
 
-  const [expenses, splits, viewEvents, settlementsBeforeSync] =
+  const [expenses, splits, viewEvents, settlementsSnapshot] =
     await Promise.all([
       fetchExpensesByGroupId(groupId),
       fetchSplitsByGroupId(groupId),
       fetchViewEventsForGroup(groupId),
-      getSettlementsByGroupId(groupId),
+      fetchSettlementsByGroupId(groupId),
     ]);
 
-  const hasExpenses = expenses.length > 0;
-
-  if (!hasExpenses) {
-    // State A: onboarding
+  if (expenses.length === 0) {
     return (
-      <main className="flex flex-1 flex-col px-4 py-4 mx-auto w-full max-w-[640px] gap-4">
-        <h1 className="text-base font-semibold truncate">{group.name}</h1>
-
-        <Card>
-          <CardContent className="flex flex-col gap-3 pt-4">
-            <div className="flex flex-col gap-1">
-              <p className="text-[0.9375rem] font-semibold">Группа создана</p>
-              <p className="text-[0.9375rem] text-muted-foreground">
-                Теперь вы можете пригласить друзей или добавить первую трату
-              </p>
-            </div>
-            <InviteButton groupId={groupId} />
-          </CardContent>
-        </Card>
-
-        <LinkButton
-          href={`/groups/${groupId}/expenses/new`}
-          size="lg"
-          className="w-full"
-        >
-          Ввести трату
-        </LinkButton>
-      </main>
+      <GroupEmptyOnboarding groupId={groupId} groupName={group.name} />
     );
   }
 
-  // State B: expense-based balances minus already paid transfers → remaining suggested only
-  const balances = calculateBalances(members, expenses, splits);
-  const paidEdges = settlementsBeforeSync
-    .filter((s) => s.status === "paid")
-    .map((s) => ({
-      fromGroupMemberId: s.from_group_member_id,
-      toGroupMemberId: s.to_group_member_id,
-      amountMinor: s.amount_minor,
-    }));
-  const balancesAfterPaid = applyPaidSettlementsToBalances(balances, paidEdges);
-  const suggestions = calculateSettlements(balancesAfterPaid);
-
-  if (group.currency === "RUB" && netBalancesSumToZero(balances)) {
-    await upsertSettlements(
+  const { dbSettlements, balancesAfterPaid } =
+    await resolveGroupSettlementsDisplay({
       groupId,
-      suggestions.map((s) => ({
-        fromGroupMemberId: s.fromGroupMemberId,
-        toGroupMemberId: s.toGroupMemberId,
-        amountMinor: s.amountMinor,
-      })),
-    );
-  }
-
-  const dbSettlements = await getSettlementsByGroupId(groupId);
-
-  const myBalanceAfterPaid = balancesAfterPaid.find(
-    (b) => b.groupMemberId === myMemberId,
-  );
-  const totalSpent = expenses
-    .filter((e) => e.type === "expense")
-    .reduce((s, e) => s + e.amount_minor, 0);
-
-  const myPaidFromExpenses = expenses
-    .filter((e) => e.type === "expense" && e.group_member_id === myMemberId)
-    .reduce((s, e) => s + e.amount_minor, 0);
-
-  const paidSettlements = dbSettlements.filter((st) => st.status === "paid");
-
-  const myPaidAsDebtor = paidSettlements
-    .filter((st) => st.from_group_member_id === myMemberId)
-    .reduce((s, st) => s + Number(st.amount_minor), 0);
-
-  const myReceivedDebtPayments = paidSettlements
-    .filter((st) => st.to_group_member_id === myMemberId)
-    .reduce((s, st) => s + Number(st.amount_minor), 0);
-
-  /** Расходы как плательщик + ваши переводы по долгам − полученные от других погашения */
-  const myPaid = Math.max(
-    0,
-    myPaidFromExpenses + myPaidAsDebtor - myReceivedDebtPayments,
-  );
-
-  const mySplitTotal = splits
-    .filter((s) => s.group_member_id === myMemberId)
-    .reduce((s, sp) => s + sp.amount_minor, 0);
-
-  /** Остаток долга перед вами после учёта отмеченных переводов */
-  const owedToMe = Math.max(0, myBalanceAfterPaid?.netMinor ?? 0);
-
-  const activeSettlements = dbSettlements.filter(
-    (s) => s.status === "suggested",
-  );
-
-  const memberMap = new Map(members.map((m) => [m.id, m.display_name]));
-  const viewMap = new Map(
-    viewEvents.map((v) => [v.group_member_id ?? "", v.status]),
-  );
-
-  const myViewEvent = viewEvents.find((v) => v.user_id === session.userId);
-  const showAcknowledgeButton = myViewEvent?.status === "viewed";
+      currency: group.currency,
+      members,
+      expenses,
+      splits,
+      settlementsSnapshot,
+    });
 
   return (
-    <main className="flex flex-1 flex-col px-4 py-4 mx-auto w-full max-w-[640px] gap-3">
-      <div className="flex items-center justify-between gap-2">
-        <h1 className="text-base font-semibold truncate">{group.name}</h1>
-        <InviteButton groupId={groupId} />
-      </div>
-
-      {/* Обзор затрат */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-[0.9375rem]">Обзор затрат</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          <Row label="Всего потрачено всеми" value={formatMoney(totalSpent)} />
-          <Separator />
-          <Row label="Ваша доля" value={formatMoney(mySplitTotal)} />
-          <Row label="Вы оплатили" value={formatMoney(myPaid)} />
-          <Row label="Вам задолжали" value={formatMoney(owedToMe)} />
-          <Separator />
-          <LinkButton
-            href={`/groups/${groupId}/expenses`}
-            variant="ghost"
-            className="justify-start px-0 text-[0.875rem] text-primary h-auto"
-          >
-            Посмотреть все расходы →
-          </LinkButton>
-        </CardContent>
-      </Card>
-
-      {/* Как закрыть задолженности */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-[0.9375rem]">
-            Как закрыть все задолженности?
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {activeSettlements.length === 0 ? (
-            <p className="text-[0.9375rem] text-muted-foreground">
-              Все расчёты закрыты
-            </p>
-          ) : (
-            activeSettlements.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between gap-2"
-              >
-                <p className="text-[0.9375rem] leading-snug">
-                  <span className="font-medium">
-                    {memberMap.get(s.from_group_member_id) ?? "—"}
-                  </span>{" "}
-                  переводит{" "}
-                  <span className="font-medium">
-                    {formatMoney(s.amount_minor)}
-                  </span>{" "}
-                  →{" "}
-                  <span className="font-medium">
-                    {memberMap.get(s.to_group_member_id) ?? "—"}
-                  </span>
-                </p>
-                <MarkPaidButton settlementId={s.id} groupId={groupId} />
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Кто просмотрел */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-[0.9375rem]">
-            Кто уже просмотрел группу?
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {showAcknowledgeButton && (
-            <AcknowledgeGroupButton groupId={groupId} />
-          )}
-          {members.map((member) => {
-            const status = viewMap.get(member.id);
-            return (
-              <div
-                key={member.id}
-                className="flex items-center justify-between"
-              >
-                <span className="text-[0.9375rem]">{member.display_name}</span>
-                <StatusBadge status={status} isMe={member.id === myMemberId} />
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      <LinkButton
-        href={`/groups/${groupId}/expenses/new`}
-        size="lg"
-        className="w-full mt-1"
-      >
-        Ввести трату
-      </LinkButton>
-    </main>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <span className="text-[0.9375rem] text-muted-foreground">{label}</span>
-      <span className="text-[0.9375rem] font-medium tabular-nums">{value}</span>
-    </div>
-  );
-}
-
-function StatusBadge({
-  status,
-  isMe,
-}: {
-  status: string | undefined;
-  isMe: boolean;
-}) {
-  if (!status) {
-    return (
-      <span className="text-[0.8125rem] text-muted-foreground">
-        не просмотрено
-      </span>
-    );
-  }
-  if (status === "acknowledged") {
-    return (
-      <span className="text-[0.8125rem] text-primary font-medium">
-        отметился{isMe ? " (вы)" : ""}
-      </span>
-    );
-  }
-  return (
-    <span className="text-[0.8125rem] text-muted-foreground">
-      просмотрено{isMe ? " (вы)" : ""}
-    </span>
+    <GroupDashboard
+      groupId={groupId}
+      groupName={group.name}
+      dbSettlements={dbSettlements}
+      balancesAfterPaid={balancesAfterPaid}
+      expenses={expenses}
+      splits={splits}
+      members={members}
+      viewEvents={viewEvents}
+      userId={session.userId}
+      myMemberId={myMemberId}
+    />
   );
 }

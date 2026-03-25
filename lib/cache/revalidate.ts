@@ -16,3 +16,8 @@ export function revalidateUserGroupsList(userId: string): void {
   revalidateTag(userGroupsTag(userId), "minutes");
   revalidatePath("/");
 }
+
+/** Только сброс unstable_cache по группе (без revalidatePath), например после upsert в RSC */
+export function revalidateGroupDataCache(groupId: string): void {
+  revalidateTag(groupDataTag(groupId), "minutes");
+}

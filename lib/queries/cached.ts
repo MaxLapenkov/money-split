@@ -9,6 +9,7 @@ import {
   getGroupMembers,
   getGroupsByUserId,
 } from "@/lib/queries/groups";
+import { getSettlementsByGroupId } from "@/lib/queries/settlements";
 import { getViewEventsForGroup } from "@/lib/queries/view-events";
 import { groupDataTag, userGroupsTag } from "@/lib/cache/tags";
 
@@ -77,6 +78,17 @@ export function fetchViewEventsForGroup(groupId: string) {
   return unstable_cache(
     async () => getViewEventsForGroup(groupId),
     ["query", "view-events", groupId],
+    {
+      revalidate: GROUP_REVALIDATE_SECONDS,
+      tags: [groupDataTag(groupId)],
+    },
+  )();
+}
+
+export function fetchSettlementsByGroupId(groupId: string) {
+  return unstable_cache(
+    async () => getSettlementsByGroupId(groupId),
+    ["query", "settlements", groupId],
     {
       revalidate: GROUP_REVALIDATE_SECONDS,
       tags: [groupDataTag(groupId)],
