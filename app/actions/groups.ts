@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { actionError } from "@/lib/errors/action-result";
 import type { ActionResult } from "@/lib/validation/common";
 import {
   revalidateGroupData,
@@ -24,10 +25,7 @@ export async function createGroup(
 
     const parsed = createGroupInputSchema.safeParse(input);
     if (!parsed.success) {
-      return {
-        ok: false,
-        error: { code: "VALIDATION_ERROR", message: "Invalid group payload" },
-      };
+      return actionError("VALIDATION_ERROR", "Проверьте данные группы");
     }
 
     const { name, participants } = parsed.data;
@@ -63,16 +61,10 @@ export async function createGroup(
     return { ok: true, groupId: result.group.id };
   } catch (err) {
     if (err instanceof AuthRequiredError) {
-      return {
-        ok: false,
-        error: { code: "UNAUTHORIZED", message: "Authentication required" },
-      };
+      return actionError("UNAUTHORIZED", "Требуется авторизация");
     }
     console.error("createGroup error:", err);
-    return {
-      ok: false,
-      error: { code: "INTERNAL_ERROR", message: "Failed to create group" },
-    };
+    return actionError("INTERNAL_ERROR", "Не удалось создать группу");
   }
 }
 
@@ -84,10 +76,7 @@ export async function deleteGroup(
     session = await requireSession();
   } catch (err) {
     if (err instanceof AuthRequiredError) {
-      return {
-        ok: false,
-        error: { code: "UNAUTHORIZED", message: "Authentication required" },
-      };
+      return actionError("UNAUTHORIZED", "Требуется авторизация");
     }
     throw err;
   }
@@ -97,20 +86,14 @@ export async function deleteGroup(
     deleted = await deleteGroupForUser(groupId, session.userId);
   } catch (err) {
     console.error("deleteGroup error:", err);
-    return {
-      ok: false,
-      error: { code: "INTERNAL_ERROR", message: "Не удалось удалить группу" },
-    };
+    return actionError("INTERNAL_ERROR", "Не удалось удалить группу");
   }
 
   if (!deleted) {
-    return {
-      ok: false,
-      error: {
-        code: "FORBIDDEN",
-        message: "Только организатор может удалить группу",
-      },
-    };
+    return actionError(
+      "FORBIDDEN_GROUP_ACCESS",
+      "Только организатор может удалить группу",
+    );
   }
 
   try {

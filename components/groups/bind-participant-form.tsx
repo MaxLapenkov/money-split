@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useWebApp } from "@/components/telegram/web-app-provider";
 import { bindParticipant } from "@/app/actions/invite";
+import { actionErrorHint } from "@/lib/errors/user-hint";
 import { DeleteGroupButton } from "@/components/groups/delete-group-button";
 import type { DbGroupMember } from "@/lib/supabase/types";
 
@@ -39,11 +40,7 @@ export function BindParticipantForm({
       });
 
       if (!result.ok) {
-        if (result.error.code === "BINDING_CONFLICT") {
-          toast.error("Этот участник уже занят другим пользователем");
-        } else {
-          toast.error("Не удалось выбрать участника. Попробуйте ещё раз.");
-        }
+        toast.error(actionErrorHint(result.error.code, result.error.message));
         return;
       }
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { actionError } from "@/lib/errors/action-result";
 import type { ActionResult } from "@/lib/validation/common";
 import type {
   ResolveInviteInput,
@@ -34,27 +35,18 @@ export async function resolveInvite(
   try {
     const parsed = resolveInviteInputSchema.safeParse(input);
     if (!parsed.success) {
-      return {
-        ok: false,
-        error: { code: "VALIDATION_ERROR", message: "Invalid invite payload" },
-      };
+      return actionError("INVALID_PAYLOAD", "Некорректные данные приглашения");
     }
 
     const invite = await resolveInviteToken(parsed.data.inviteToken);
     if (!invite) {
-      return {
-        ok: false,
-        error: { code: "INVITE_NOT_FOUND", message: "Invalid invite link" },
-      };
+      return actionError("INVITE_NOT_FOUND", "Ссылка приглашения недействительна");
     }
 
     return { ok: true, groupId: invite.group_id };
   } catch (err) {
     console.error("resolveInvite error:", err);
-    return {
-      ok: false,
-      error: { code: "INTERNAL_ERROR", message: "Failed to resolve invite" },
-    };
+    return actionError("INTERNAL_ERROR", "Не удалось обработать приглашение");
   }
 }
 
@@ -72,16 +64,10 @@ export async function generateInvite(
     return { ok: true, inviteToken: invite.token };
   } catch (err) {
     if (err instanceof AuthRequiredError) {
-      return {
-        ok: false,
-        error: { code: "UNAUTHORIZED", message: "Authentication required" },
-      };
+      return actionError("UNAUTHORIZED", "Требуется авторизация");
     }
     console.error("generateInvite error:", err);
-    return {
-      ok: false,
-      error: { code: "INTERNAL_ERROR", message: "Failed to generate invite" },
-    };
+    return actionError("INTERNAL_ERROR", "Не удалось создать ссылку приглашения");
   }
 }
 
@@ -94,13 +80,7 @@ export async function bindParticipant(
 
     const parsed = bindParticipantInputSchema.safeParse(input);
     if (!parsed.success) {
-      return {
-        ok: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Invalid binding payload",
-        },
-      };
+      return actionError("VALIDATION_ERROR", "Проверьте выбор участника");
     }
 
     // Check if user already has a binding in this group
@@ -113,14 +93,14 @@ export async function bindParticipant(
       groupId,
       parsed.data.groupMemberId
     );
-    if (!targetMember || targetMember.role === "owner") {
-      return {
-        ok: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Нельзя выбрать организатора по приглашению",
-        },
-      };
+    if (!targetMember) {
+      return actionError("GROUP_MEMBER_NOT_FOUND", "Участник не найден в группе");
+    }
+    if (targetMember.role === "owner") {
+      return actionError(
+        "VALIDATION_ERROR",
+        "Нельзя выбрать организатора по приглашению",
+      );
     }
 
     const binding = await createBinding({
@@ -143,25 +123,20 @@ export async function bindParticipant(
     return { ok: true, groupMemberId: binding.group_member_id };
   } catch (err) {
     if (err instanceof AuthRequiredError) {
-      return {
-        ok: false,
-        error: { code: "UNAUTHORIZED", message: "Authentication required" },
-      };
+      return actionError("UNAUTHORIZED", "Требуется авторизация");
     }
 
     const message =
       err instanceof Error ? err.message : "Failed to bind participant";
     const isConflict = message.includes("unique") || message.includes("duplicate");
 
-    return {
-      ok: false,
-      error: {
-        code: isConflict ? "BINDING_CONFLICT" : "INTERNAL_ERROR",
-        message: isConflict
-          ? "This participant is already bound to another user"
-          : "Failed to bind participant",
-      },
-    };
+    if (isConflict) {
+      return actionError(
+        "BINDING_CONFLICT",
+        "Этот участник уже привязан к другому пользователю",
+      );
+    }
+    return actionError("INTERNAL_ERROR", "Не удалось сохранить привязку");
   }
 }
 
@@ -179,18 +154,9 @@ export async function getMyParticipant(
     };
   } catch (err) {
     if (err instanceof AuthRequiredError) {
-      return {
-        ok: false,
-        error: { code: "UNAUTHORIZED", message: "Authentication required" },
-      };
+      return actionError("UNAUTHORIZED", "Требуется авторизация");
     }
     console.error("getMyParticipant error:", err);
-    return {
-      ok: false,
-      error: {
-        code: "INTERNAL_ERROR",
-        message: "Failed to get participant",
-      },
-    };
+    return actionError("INTERNAL_ERROR", "Не удалось получить данные участника");
   }
 }

@@ -1,5 +1,6 @@
 "use server";
 
+import { actionError } from "@/lib/errors/action-result";
 import type { ActionResult } from "@/lib/validation/common";
 import { revalidateGroupData } from "@/lib/cache/revalidate";
 import type { CreateExpenseInput } from "@/lib/validation/expenses";
@@ -20,13 +21,10 @@ export async function createExpense(
 
     const parsed = createExpenseInputSchema.safeParse(input);
     if (!parsed.success) {
-      return {
-        ok: false,
-        error: {
-          code: "VALIDATION_ERROR",
-          message: "Invalid expense payload",
-        },
-      };
+      return actionError(
+        "INVALID_EXPENSE_PAYLOAD",
+        "Проверьте поля расхода или поступления",
+      );
     }
 
     const { type, groupMemberId, note, amount, splitBetween, expenseDate } =
@@ -58,15 +56,9 @@ export async function createExpense(
     return { ok: true, expenseId: result.expense.id };
   } catch (err) {
     if (err instanceof AuthRequiredError) {
-      return {
-        ok: false,
-        error: { code: "UNAUTHORIZED", message: "Authentication required" },
-      };
+      return actionError("UNAUTHORIZED", "Требуется авторизация");
     }
     console.error("createExpense error:", err);
-    return {
-      ok: false,
-      error: { code: "INTERNAL_ERROR", message: "Failed to create expense" },
-    };
+    return actionError("INTERNAL_ERROR", "Не удалось создать запись");
   }
 }

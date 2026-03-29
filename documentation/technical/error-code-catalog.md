@@ -55,6 +55,11 @@
 - `message` можно локализовать и менять без изменения `code`.
 - UI логика ветвится по `code`, а не по `message`.
 
+## Implementation (code)
+- Типы и список кодов: `lib/errors/catalog.ts`
+- Ответы ошибок из actions: `actionError()` в `lib/errors/action-result.ts`
+- Подсказки для toast: `lib/errors/user-hint.ts` (`actionErrorHint`)
+
 ## Related
 - [[project-documentation]]
 - [[technical/api-endpoints-mvp]]

@@ -1,5 +1,6 @@
 "use server";
 
+import { actionError } from "@/lib/errors/action-result";
 import type { ActionResult } from "@/lib/validation/common";
 import { revalidateGroupData } from "@/lib/cache/revalidate";
 import { requireSession, AuthRequiredError } from "@/lib/auth/require-session";
@@ -21,15 +22,9 @@ export async function acknowledgeGroupAction(
     return { ok: true };
   } catch (err) {
     if (err instanceof AuthRequiredError) {
-      return {
-        ok: false,
-        error: { code: "UNAUTHORIZED", message: "Authentication required" },
-      };
+      return actionError("UNAUTHORIZED", "Требуется авторизация");
     }
     console.error("acknowledgeGroupAction error:", err);
-    return {
-      ok: false,
-      error: { code: "INTERNAL_ERROR", message: "Failed to acknowledge" },
-    };
+    return actionError("INTERNAL_ERROR", "Не удалось сохранить отметку");
   }
 }

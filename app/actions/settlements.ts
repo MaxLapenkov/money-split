@@ -1,5 +1,6 @@
 "use server";
 
+import { actionError } from "@/lib/errors/action-result";
 import type { ActionResult } from "@/lib/validation/common";
 import { revalidateGroupData } from "@/lib/cache/revalidate";
 import { requireSession, AuthRequiredError } from "@/lib/auth/require-session";
@@ -19,27 +20,20 @@ export async function markSettlementPaidAction(
 
     const settlement = await getSettlementById(settlementId);
     if (!settlement || settlement.group_id !== groupId) {
-      return {
-        ok: false,
-        error: { code: "NOT_FOUND", message: "Перевод не найден" },
-      };
+      return actionError("SETTLEMENT_NOT_FOUND", "Перевод не найден");
     }
     if (settlement.status !== "suggested") {
-      return {
-        ok: false,
-        error: {
-          code: "SETTLEMENT_INVALID_STATE",
-          message: "Перевод уже отмечен или недоступен",
-        },
-      };
+      return actionError(
+        settlement.status === "paid"
+          ? "SETTLEMENT_ALREADY_PAID"
+          : "SETTLEMENT_INVALID_STATE",
+        "Перевод уже отмечен или недоступен",
+      );
     }
 
     const group = await getGroupById(groupId);
     if (!group) {
-      return {
-        ok: false,
-        error: { code: "NOT_FOUND", message: "Группа не найдена" },
-      };
+      return actionError("GROUP_NOT_FOUND", "Группа не найдена");
     }
 
     const isOwner = group.created_by === session.userId;
@@ -49,14 +43,10 @@ export async function markSettlementPaidAction(
       binding.group_member_id === settlement.from_group_member_id;
 
     if (!isOwner && !isDebtor) {
-      return {
-        ok: false,
-        error: {
-          code: "FORBIDDEN",
-          message:
-            "Отметить оплату может только организатор или тот, кто переводит по этой строке",
-        },
-      };
+      return actionError(
+        "FORBIDDEN_GROUP_ACCESS",
+        "Отметить оплату может только организатор или тот, кто переводит по этой строке",
+      );
     }
 
     await markSettlementPaid(settlementId);
@@ -64,31 +54,19 @@ export async function markSettlementPaidAction(
     return { ok: true };
   } catch (err) {
     if (err instanceof AuthRequiredError) {
-      return {
-        ok: false,
-        error: { code: "UNAUTHORIZED", message: "Authentication required" },
-      };
+      return actionError("UNAUTHORIZED", "Требуется авторизация");
     }
     const message = err instanceof Error ? err.message : "";
     if (message === "SETTLEMENT_INVALID_STATE") {
-      return {
-        ok: false,
-        error: {
-          code: "SETTLEMENT_INVALID_STATE",
-          message: "Перевод уже отмечен или недоступен",
-        },
-      };
+      return actionError(
+        "SETTLEMENT_INVALID_STATE",
+        "Перевод уже отмечен или недоступен",
+      );
     }
     if (message === "SETTLEMENT_NOT_FOUND") {
-      return {
-        ok: false,
-        error: { code: "NOT_FOUND", message: "Перевод не найден" },
-      };
+      return actionError("SETTLEMENT_NOT_FOUND", "Перевод не найден");
     }
     console.error("markSettlementPaid error:", err);
-    return {
-      ok: false,
-      error: { code: "INTERNAL_ERROR", message: "Failed to update settlement" },
-    };
+    return actionError("INTERNAL_ERROR", "Не удалось обновить статус");
   }
 }

@@ -47,10 +47,12 @@
 ## Phase 6: Hardening
 1. Подключить единый error handling:
    - [[technical/error-code-catalog]].
+   - **Сделано в коде:** `lib/errors/catalog.ts`, `actionError`, обновлены server actions и UI-toast; см. раздел Implementation в каталоге ошибок.
 2. Пройти DoD:
    - [[specs/spec-dod-checklist]].
+   - **Автоматизировано частично:** глобальный `app/error.tsx` для сбоев рендера.
 3. Пройти тест-план:
-   - [[technical/mvp-test-plan]].
+   - [[technical/mvp-test-plan]] (ручная проверка в Telegram).
 
 ## Phase 7: Release Readiness
 1. Пройти release checklist:

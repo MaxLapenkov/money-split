@@ -18,6 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
 import { AmountInput } from "@/components/ui/amount-input";
 import { createExpense } from "@/app/actions/expenses";
+import { actionErrorHint } from "@/lib/errors/user-hint";
 import type { DbGroupMember } from "@/lib/supabase/types";
 
 const schema = z.object({
@@ -84,11 +85,7 @@ export function CreateExpenseForm({
     const result = await createExpense(groupId, values);
 
     if (!result.ok) {
-      toast.error(
-        result.error.code === "UNAUTHORIZED"
-          ? "Необходима авторизация"
-          : "Не удалось создать запись. Попробуйте ещё раз.",
-      );
+      toast.error(actionErrorHint(result.error.code, result.error.message));
       return;
     }
 

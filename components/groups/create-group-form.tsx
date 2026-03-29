@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { createGroup } from "@/app/actions/groups";
+import { actionErrorHint } from "@/lib/errors/user-hint";
 
 const schema = z.object({
   name: z.string().min(1, "Введите название группы").max(120),
@@ -47,11 +48,7 @@ export function CreateGroupForm() {
     const result = await createGroup(values);
 
     if (!result.ok) {
-      toast.error(
-        result.error.code === "UNAUTHORIZED"
-          ? "Необходима авторизация"
-          : "Не удалось создать группу. Попробуйте ещё раз."
-      );
+      toast.error(actionErrorHint(result.error.code, result.error.message));
       return;
     }
 
@@ -82,9 +79,6 @@ export function CreateGroupForm() {
       <div className="flex flex-col gap-1.5">
         <Label className="text-[0.875rem] font-medium">Валюта</Label>
         <Input value="RUB" disabled className="opacity-60 cursor-not-allowed" />
-        <p className="text-[0.8125rem] text-muted-foreground">
-          В MVP доступен только RUB
-        </p>
       </div>
 
       <Separator />

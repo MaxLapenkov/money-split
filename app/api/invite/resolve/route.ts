@@ -12,8 +12,8 @@ export async function POST(request: NextRequest) {
         {
           ok: false,
           error: {
-            code: "VALIDATION_ERROR",
-            message: "Invalid invite token",
+            code: "INVALID_PAYLOAD",
+            message: "Некорректное тело запроса",
           },
         },
         { status: 400 }

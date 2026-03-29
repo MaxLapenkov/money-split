@@ -1,6 +1,7 @@
 "use server";
 
 import { getSession } from "@/lib/auth/session";
+import { actionError } from "@/lib/errors/action-result";
 import type { ApiError } from "@/lib/validation/common";
 
 interface SessionResult {
@@ -14,10 +15,7 @@ export async function getSessionAction(): Promise<
   const session = await getSession();
 
   if (!session) {
-    return {
-      ok: false,
-      error: { code: "UNAUTHORIZED", message: "No active session" },
-    };
+    return actionError("UNAUTHORIZED", "Нет активной сессии");
   }
 
   return { ok: true, userId: session.userId, telegramId: session.telegramId };

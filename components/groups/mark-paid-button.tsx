@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { markSettlementPaidAction } from "@/app/actions/settlements";
+import { actionErrorHint } from "@/lib/errors/user-hint";
 
 interface MarkPaidButtonProps {
   settlementId: string;
@@ -23,11 +24,7 @@ export function MarkPaidButton({ settlementId, groupId }: MarkPaidButtonProps) {
         toast.success("Отмечено как оплаченное");
         router.refresh();
       } else {
-        toast.error(
-          result.error.code === "FORBIDDEN"
-            ? result.error.message
-            : "Не удалось обновить статус",
-        );
+        toast.error(actionErrorHint(result.error.code, result.error.message));
       }
     } finally {
       setLoading(false);

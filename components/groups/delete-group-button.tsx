@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useWebApp } from "@/components/telegram/web-app-provider";
 import { deleteGroup } from "@/app/actions/groups";
+import { actionErrorHint } from "@/lib/errors/user-hint";
 
 type Props = {
   groupId: string;
@@ -30,11 +31,7 @@ export function DeleteGroupButton({ groupId, groupName }: Props) {
     try {
       const result = await deleteGroup(groupId);
       if (result && "ok" in result && result.ok === false) {
-        toast.error(
-          result.error.code === "FORBIDDEN"
-            ? result.error.message
-            : "Не удалось удалить группу",
-        );
+        toast.error(actionErrorHint(result.error.code, result.error.message));
         return;
       }
       webApp?.HapticFeedback.notificationOccurred("success");
