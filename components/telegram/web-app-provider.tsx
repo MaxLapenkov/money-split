@@ -10,6 +10,10 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Loader2Icon } from "lucide-react";
+import {
+  TELEGRAM_THEME_STORAGE_KEY,
+  type TelegramThemeStorageValue,
+} from "@/lib/telegram-theme-storage";
 
 type WebApp = typeof import("@twa-dev/sdk").default;
 
@@ -114,7 +118,14 @@ export function WebAppProvider({ children }: { children: ReactNode }) {
 
         const applyTheme = () => {
           const scheme = sdk.colorScheme;
-          document.documentElement.classList.toggle("dark", scheme === "dark");
+          const isDark = scheme === "dark";
+          document.documentElement.classList.toggle("dark", isDark);
+          try {
+            const value: TelegramThemeStorageValue = isDark ? "dark" : "light";
+            localStorage.setItem(TELEGRAM_THEME_STORAGE_KEY, value);
+          } catch {
+            // ignore quota / private mode
+          }
         };
 
         applyTheme();

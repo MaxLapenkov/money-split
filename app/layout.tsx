@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { WebAppProvider } from "@/components/telegram/web-app-provider";
 import { TelegramBackButton } from "@/components/telegram/back-button";
 import "./globals.css";
+import { TELEGRAM_THEME_STORAGE_KEY } from "@/lib/telegram-theme-storage";
 
 export const metadata: Metadata = {
   title: "Money Split",
@@ -28,6 +29,11 @@ export default function RootLayout({
   return (
     <html lang="ru" className="h-full" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem('${TELEGRAM_THEME_STORAGE_KEY}')==='dark')document.documentElement.classList.add('dark')}catch(e){}`,
+          }}
+        />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
