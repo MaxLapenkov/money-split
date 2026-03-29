@@ -8,7 +8,8 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { Loader2Icon } from "lucide-react";
 
 type WebApp = typeof import("@twa-dev/sdk").default;
 
@@ -42,6 +43,7 @@ export function useAuth() {
 
 export function WebAppProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   const [ctx, setCtx] = useState<WebAppContextValue>({
     webApp: null,
@@ -52,6 +54,14 @@ export function WebAppProvider({ children }: { children: ReactNode }) {
     status: "idle",
     userId: null,
   });
+
+  /** С первого кадра до завершения init и (при invite) до навигации в группу */
+  const [uiBlocked, setUiBlocked] = useState(true);
+  /** Успешный invite + router.replace — снимаем блок только после смены pathname */
+  const [awaitingInviteNavigation, setAwaitingInviteNavigation] = useState(false);
+  const [overlayHint, setOverlayHint] = useState<"loading" | "invite">(
+    "loading",
+  );
 
   const authenticate = useCallback(async (initData: string) => {
     setAuth({ status: "loading", userId: null });
@@ -79,6 +89,17 @@ export function WebAppProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   useEffect(() => {
+    if (!awaitingInviteNavigation) return;
+    if (
+      pathname.startsWith("/groups/") &&
+      pathname !== "/groups/new"
+    ) {
+      setUiBlocked(false);
+      setAwaitingInviteNavigation(false);
+    }
+  }, [pathname, awaitingInviteNavigation]);
+
+  useEffect(() => {
     let cancelled = false;
 
     async function init() {
@@ -99,15 +120,21 @@ export function WebAppProvider({ children }: { children: ReactNode }) {
         applyTheme();
         sdk.onEvent("themeChanged", applyTheme);
 
+        const startParam = sdk.initDataUnsafe?.start_param;
+        const isInviteJoin = startParam?.startsWith("join_") ?? false;
+        if (isInviteJoin) {
+          setOverlayHint("invite");
+        }
+
         setCtx({ webApp: sdk, isReady: true });
 
         if (sdk.initData) {
           await authenticate(sdk.initData);
         }
 
-        // Handle invite deeplink: startapp=join_<token>
-        const startParam = sdk.initDataUnsafe?.start_param;
-        if (startParam?.startsWith("join_")) {
+        if (cancelled) return;
+
+        if (isInviteJoin && startParam) {
           const inviteToken = startParam.slice(5);
           try {
             const res = await fetch("/api/invite/resolve", {
@@ -117,14 +144,22 @@ export function WebAppProvider({ children }: { children: ReactNode }) {
             });
             const data = await res.json();
             if (data.ok) {
+              setAwaitingInviteNavigation(true);
               router.replace(`/groups/${data.groupId}`);
+              return;
             }
           } catch {
-            // silently fail — user stays on home
+            // fall through to unblock
           }
+          setUiBlocked(false);
+          setOverlayHint("loading");
+        } else {
+          setUiBlocked(false);
         }
       } catch {
         setCtx({ webApp: null, isReady: false });
+        setUiBlocked(false);
+        setAwaitingInviteNavigation(false);
       }
     }
 
@@ -133,11 +168,33 @@ export function WebAppProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [authenticate]);
+  }, [authenticate, router]);
 
   return (
     <WebAppContext.Provider value={ctx}>
-      <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>
+      <AuthContext.Provider value={auth}>
+        <div
+          className={uiBlocked ? "pointer-events-none" : undefined}
+          inert={uiBlocked ? true : undefined}
+        >
+          {children}
+        </div>
+        {uiBlocked ? (
+          <div
+            className="fixed inset-0 z-100 flex flex-col items-center justify-center gap-3 bg-background text-foreground"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+          >
+            <Loader2Icon className="size-9 animate-spin text-muted-foreground" />
+            <p className="text-[0.9375rem] text-muted-foreground">
+              {overlayHint === "invite"
+                ? "Переход в группу…"
+                : "Загрузка…"}
+            </p>
+          </div>
+        ) : null}
+      </AuthContext.Provider>
     </WebAppContext.Provider>
   );
 }
