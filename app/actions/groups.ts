@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import type { ActionResult } from "@/lib/validation/common";
 import {
   revalidateGroupData,
@@ -8,7 +9,10 @@ import {
 import type { CreateGroupInput } from "@/lib/validation/groups";
 import { createGroupInputSchema } from "@/lib/validation/groups";
 import { requireSession, AuthRequiredError } from "@/lib/auth/require-session";
-import { createGroup as dbCreateGroup } from "@/lib/queries/groups";
+import {
+  createGroup as dbCreateGroup,
+  deleteGroupForUser,
+} from "@/lib/queries/groups";
 import { createBinding } from "@/lib/queries/bindings";
 import { recordInitialGroupView } from "@/lib/queries/view-events";
 
@@ -70,4 +74,51 @@ export async function createGroup(
       error: { code: "INTERNAL_ERROR", message: "Failed to create group" },
     };
   }
+}
+
+export async function deleteGroup(
+  groupId: string
+): Promise<ActionResult<{ ok: true }>> {
+  let session;
+  try {
+    session = await requireSession();
+  } catch (err) {
+    if (err instanceof AuthRequiredError) {
+      return {
+        ok: false,
+        error: { code: "UNAUTHORIZED", message: "Authentication required" },
+      };
+    }
+    throw err;
+  }
+
+  let deleted: boolean;
+  try {
+    deleted = await deleteGroupForUser(groupId, session.userId);
+  } catch (err) {
+    console.error("deleteGroup error:", err);
+    return {
+      ok: false,
+      error: { code: "INTERNAL_ERROR", message: "Не удалось удалить группу" },
+    };
+  }
+
+  if (!deleted) {
+    return {
+      ok: false,
+      error: {
+        code: "FORBIDDEN",
+        message: "Только организатор может удалить группу",
+      },
+    };
+  }
+
+  try {
+    revalidateGroupData(groupId);
+    revalidateUserGroupsList(session.userId);
+  } catch (err) {
+    console.error("deleteGroup revalidate error:", err);
+  }
+
+  redirect("/");
 }

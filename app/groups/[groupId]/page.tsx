@@ -38,12 +38,15 @@ export default async function GroupPage({
 
   const binding = await fetchBindingForUser(groupId, session.userId);
 
+  const isOwner = group.created_by === session.userId;
+
   if (!binding) {
     return (
       <BindParticipantForm
         groupId={groupId}
         groupName={group.name}
         members={members}
+        isOwner={isOwner}
       />
     );
   }
@@ -66,7 +69,11 @@ export default async function GroupPage({
 
   if (expenses.length === 0) {
     return (
-      <GroupEmptyOnboarding groupId={groupId} groupName={group.name} />
+      <GroupEmptyOnboarding
+        groupId={groupId}
+        groupName={group.name}
+        isOwner={isOwner}
+      />
     );
   }
 
@@ -84,6 +91,7 @@ export default async function GroupPage({
     <GroupDashboard
       groupId={groupId}
       groupName={group.name}
+      isOwner={isOwner}
       dbSettlements={dbSettlements}
       balancesAfterPaid={balancesAfterPaid}
       expenses={expenses}

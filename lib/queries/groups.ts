@@ -130,3 +130,21 @@ export async function getGroupsByUserId(
   );
   return all;
 }
+
+/** Удаляет группу только если пользователь — создатель (организатор). */
+export async function deleteGroupForUser(
+  groupId: string,
+  userId: string
+): Promise<boolean> {
+  const sb = createServiceClient();
+
+  const { data, error } = await sb
+    .from("groups")
+    .delete()
+    .eq("id", groupId)
+    .eq("created_by", userId)
+    .select("id");
+
+  if (error) throw error;
+  return (data?.length ?? 0) > 0;
+}

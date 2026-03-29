@@ -1,4 +1,5 @@
 import { LinkButton } from "@/components/ui/link-button";
+import { DeleteGroupButton } from "@/components/groups/delete-group-button";
 import { InviteButton } from "@/components/groups/invite-button";
 
 import type {
@@ -16,6 +17,7 @@ import { GroupViewersCard } from "./group-viewers-card";
 type Props = {
   groupId: string;
   groupName: string;
+  isOwner: boolean;
   dbSettlements: DbSettlement[];
   balancesAfterPaid: Balance[];
   expenses: DbExpense[];
@@ -29,6 +31,7 @@ type Props = {
 export function GroupDashboard({
   groupId,
   groupName,
+  isOwner,
   dbSettlements,
   balancesAfterPaid,
   expenses,
@@ -75,6 +78,10 @@ export function GroupDashboard({
       >
         Ввести трату
       </LinkButton>
+
+      {isOwner && (
+        <DeleteGroupButton groupId={groupId} groupName={groupName} />
+      )}
     </main>
   );
 }

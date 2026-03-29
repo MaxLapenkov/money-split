@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "documentation/design-system-telegram.md",
+                "file": "documentation/technical/mvp-implementation-order.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "design-system-telegram"
+              "title": "mvp-implementation-order"
             }
           },
           {
@@ -242,15 +242,15 @@
   },
   "active": "b55e5d0f32478f64",
   "lastOpenFiles": [
-    "documentation/specs/home-page-ui-spec.md",
     "documentation/project-documentation.md",
+    "documentation/design-system-telegram.md",
+    "documentation/specs/home-page-ui-spec.md",
     "documentation/technical/mvp-implementation-order.md",
     "documentation/technical/supabase-rls-policy.md",
     "documentation/specs/spec-dod-checklist.md",
     "documentation/technical/routes-and-navigation-map.md",
     "documentation/database-schema-mvp-final.md",
     "documentation/mvp-scope-v1.md",
-    "documentation/design-system-telegram.md",
     "documentation/technical/auth-flow-telegram-nextjs.md",
     "documentation/user-flows.md",
     "documentation/Без названия.canvas",

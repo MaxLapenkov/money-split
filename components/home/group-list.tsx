@@ -1,8 +1,12 @@
 import { LinkButton } from "@/components/ui/link-button";
 import { ChevronRight } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
+import { cn } from "@/lib/utils";
 import { fetchGroupsForUser } from "@/lib/queries/cached";
 import { GroupListSkeleton } from "./group-list-skeleton";
+
+/** 5 строк по h-12 + gap-2 между ними: 5×3rem + 4×0.5rem = 17rem */
+const GROUP_LIST_SCROLL_MAX_HEIGHT = "max-h-[17rem]";
 
 export async function GroupList() {
   const session = await getSession();
@@ -26,14 +30,22 @@ export async function GroupList() {
     );
   }
 
+  const scrollable = groups.length > 5;
+
   return (
-    <div className="flex flex-col gap-2">
+    <div
+      className={cn(
+        "flex flex-col gap-2",
+        scrollable &&
+          `${GROUP_LIST_SCROLL_MAX_HEIGHT} overflow-y-auto overflow-x-hidden pr-0.5 [scrollbar-gutter:stable]`,
+      )}
+    >
       {groups.map((group) => (
         <LinkButton
           key={group.id}
           href={`/groups/${group.id}`}
           variant="ghost"
-          className="justify-between h-auto py-3 px-3"
+          className="h-12 shrink-0 justify-between px-3"
         >
           <span className="text-[0.9375rem] truncate">{group.name}</span>
           <ChevronRight className="size-4 shrink-0 text-muted-foreground" />

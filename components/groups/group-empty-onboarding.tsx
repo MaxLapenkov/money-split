@@ -1,13 +1,15 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { LinkButton } from "@/components/ui/link-button";
+import { DeleteGroupButton } from "@/components/groups/delete-group-button";
 import { InviteButton } from "@/components/groups/invite-button";
 
 type Props = {
   groupId: string;
   groupName: string;
+  isOwner: boolean;
 };
 
-export function GroupEmptyOnboarding({ groupId, groupName }: Props) {
+export function GroupEmptyOnboarding({ groupId, groupName, isOwner }: Props) {
   return (
     <main className="flex flex-1 flex-col px-4 py-4 mx-auto w-full max-w-[640px] gap-4">
       <h1 className="text-base font-semibold truncate">{groupName}</h1>
@@ -31,6 +33,10 @@ export function GroupEmptyOnboarding({ groupId, groupName }: Props) {
       >
         Ввести трату
       </LinkButton>
+
+      {isOwner && (
+        <DeleteGroupButton groupId={groupId} groupName={groupName} />
+      )}
     </main>
   );
 }

@@ -6,18 +6,21 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useWebApp } from "@/components/telegram/web-app-provider";
 import { bindParticipant } from "@/app/actions/invite";
+import { DeleteGroupButton } from "@/components/groups/delete-group-button";
 import type { DbGroupMember } from "@/lib/supabase/types";
 
 interface BindParticipantFormProps {
   groupId: string;
   groupName: string;
   members: DbGroupMember[];
+  isOwner: boolean;
 }
 
 export function BindParticipantForm({
   groupId,
   groupName,
   members,
+  isOwner,
 }: BindParticipantFormProps) {
   const router = useRouter();
   const { webApp } = useWebApp();
@@ -98,6 +101,10 @@ export function BindParticipantForm({
       >
         {loading ? "Сохраняем..." : "Это я"}
       </Button>
+
+      {isOwner && (
+        <DeleteGroupButton groupId={groupId} groupName={groupName} />
+      )}
     </div>
   );
 }
