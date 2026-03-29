@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Money Split
 
-## Getting Started
+Telegram Mini App для учёта совместных расходов и расчётов между участниками группы: траты, балансы, рекомендуемые переводы для закрытия долгов.
 
-First, run the development server:
+## Возможности
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- Группы расходов, приглашения, привязка участника Telegram ↔ запись в группе
+- Ввод трат и долей, сводка по группе
+- Расчёт задолженностей и подсказки «кто кому переводит»
+- Отметка оплат по строкам расчёта, история на странице возвратов
+- Сессия через Telegram Web App, данные в Supabase
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Стек
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Слой | Технологии |
+|------|------------|
+| UI | Next.js (App Router), React 19, Tailwind CSS 4, shadcn/ui (Base UI) |
+| Данные | Supabase (PostgreSQL), server actions, кэш `unstable_cache` + `revalidateTag` |
+| Telegram | `@twa-dev/sdk`, тема через CSS variables `--tg-theme-*` |
+| Аналитика (опционально на Vercel) | `@vercel/analytics`, `@vercel/speed-insights` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Требования
 
-## Learn More
+- **Node.js** ≥ 20.9
+- **Bun** (рекомендуется; в Vercel используется `bun install` / `bun run build`, см. `vercel.json`)
 
-To learn more about Next.js, take a look at the following resources:
+## Быстрый старт
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Клонируй репозиторий и установи зависимости:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```bash
+   bun install
+   ```
 
-## Deploy on Vercel
+2. Скопируй переменные окружения и заполни значения:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   cp .env.local.example .env.local
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+   | Переменная | Назначение |
+   |------------|------------|
+   | `NEXT_PUBLIC_SUPABASE_URL` | URL проекта Supabase |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Service role (только сервер) |
+   | `BOT_TOKEN` | Токен Telegram-бота |
+   | `NEXT_PUBLIC_BOT_USERNAME` | Username бота (без `@`) |
+   | `NEXT_PUBLIC_APP_SHORTNAME` | Short name Mini App в BotFather |
+   | `SESSION_SECRET` | Секрет для JWT-сессии, **не короче 32 символов** |
+
+3. Запусти dev-сервер (HTTPS, как у Mini App):
+
+   ```bash
+   bun dev
+   ```
+
+   Открой указанный в консоли URL (часто `https://localhost:3000`). Для полноценной проверки авторизации нужен контекст Telegram (Mini App или настроенная отладка).
+
+## Скрипты
+
+| Команда | Описание |
+|---------|----------|
+| `bun dev` | Разработка (`next dev --experimental-https`) |
+| `bun run build` | Production-сборка |
+| `bun start` | Запуск после `build` |
+| `bun run lint` | ESLint |
+
+## Деплой
+
+Проект рассчитан на **Vercel**: в `vercel.json` заданы `installCommand` и `buildCommand` под Bun. Переменные из `.env.local.example` нужно продублировать в настройках проекта на Vercel. Подробности — в `documentation/technical/vercel-deploy.md`.
+
+## Документация
+
+В каталоге [`documentation/`](documentation/) лежат обзор продукта, схема БД, спеки экранов, потоки авторизации и технические заметки.
+
+## Лицензия
+
+[MIT](LICENSE)
