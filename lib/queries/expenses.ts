@@ -49,6 +49,18 @@ export async function createExpenseWithSplits(data: {
   };
 }
 
+export async function countExpensesInGroup(groupId: string): Promise<number> {
+  const sb = createServiceClient();
+
+  const { count, error } = await sb
+    .from("expenses")
+    .select("*", { count: "exact", head: true })
+    .eq("group_id", groupId);
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function getLatestExpenseIdForGroup(
   groupId: string
 ): Promise<string | null> {

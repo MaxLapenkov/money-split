@@ -9,6 +9,7 @@ export function revalidateGroupData(groupId: string): void {
   revalidatePath(`/groups/${groupId}`);
   revalidatePath(`/groups/${groupId}/expenses`);
   revalidatePath(`/groups/${groupId}/expenses/new`);
+  revalidatePath(`/groups/${groupId}/repayments`);
 }
 
 /** Список групп на главной после создания группы / привязки */

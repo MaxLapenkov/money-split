@@ -23,7 +23,11 @@ export function MarkPaidButton({ settlementId, groupId }: MarkPaidButtonProps) {
         toast.success("Отмечено как оплаченное");
         router.refresh();
       } else {
-        toast.error("Не удалось обновить статус");
+        toast.error(
+          result.error.code === "FORBIDDEN"
+            ? result.error.message
+            : "Не удалось обновить статус",
+        );
       }
     } finally {
       setLoading(false);

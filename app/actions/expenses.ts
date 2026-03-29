@@ -5,7 +5,11 @@ import { revalidateGroupData } from "@/lib/cache/revalidate";
 import type { CreateExpenseInput } from "@/lib/validation/expenses";
 import { createExpenseInputSchema } from "@/lib/validation/expenses";
 import { requireSession, AuthRequiredError } from "@/lib/auth/require-session";
-import { createExpenseWithSplits } from "@/lib/queries/expenses";
+import { buildEqualSplitAmounts } from "@/lib/equal-split";
+import {
+  countExpensesInGroup,
+  createExpenseWithSplits,
+} from "@/lib/queries/expenses";
 
 export async function createExpense(
   groupId: string,
@@ -31,14 +35,12 @@ export async function createExpense(
     // Convert major amount to minor (kopecks)
     const amountMinor = Math.round(amount * 100);
 
-    // Equal split among participants
-    const splitBase = Math.floor(amountMinor / splitBetween.length);
-    const remainder = amountMinor - splitBase * splitBetween.length;
-
-    const splits = splitBetween.map((memberId, i) => ({
-      groupMemberId: memberId,
-      amountMinor: splitBase + (i < remainder ? 1 : 0),
-    }));
+    const expenseIndexBefore = await countExpensesInGroup(groupId);
+    const splits = buildEqualSplitAmounts(
+      amountMinor,
+      splitBetween,
+      expenseIndexBefore,
+    );
 
     const result = await createExpenseWithSplits({
       groupId,

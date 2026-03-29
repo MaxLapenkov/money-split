@@ -86,13 +86,22 @@ export function GroupExpenseSummaryCard(props: CardProps) {
         <SummaryRow label="Вы оплатили" value={formatMoney(myPaid)} />
         <SummaryRow label="Вам задолжали" value={formatMoney(owedToMe)} />
         <Separator />
-        <LinkButton
-          href={`/groups/${groupId}/expenses`}
-          variant="ghost"
-          className="justify-start px-0 text-[0.875rem] text-primary h-auto"
-        >
-          Посмотреть все расходы →
-        </LinkButton>
+        <div className="flex flex-col gap-1">
+          <LinkButton
+            href={`/groups/${groupId}/expenses`}
+            variant="ghost"
+            className="justify-start px-0 text-[0.875rem] text-primary h-auto"
+          >
+            Посмотреть все расходы →
+          </LinkButton>
+          <LinkButton
+            href={`/groups/${groupId}/repayments`}
+            variant="ghost"
+            className="justify-start px-0 text-[0.875rem] text-primary h-auto"
+          >
+            Посмотреть погашения →
+          </LinkButton>
+        </div>
       </CardContent>
     </Card>
   );

@@ -31,9 +31,9 @@ export default function HomePage() {
           <CardTitle className="text-[0.9375rem]">Зачем этот сервис?</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-1.5 text-[0.8125rem] text-muted-foreground">
-          <p>Быстрый расчёт долгов</p>
-          <p>Прозрачные траты</p>
-          <p>Удобно для поездок и ужинов</p>
+          <p>Разделяет расходы между друзьями</p>
+          <p>Рассчитывает долги без споров</p>
+          <p>Идеально для поездок и вечеринок</p>
         </CardContent>
       </Card>
 
@@ -44,7 +44,7 @@ export default function HomePage() {
         <CardContent className="flex flex-col gap-1.5 text-[0.8125rem] text-muted-foreground">
           <p>1. Создайте группу</p>
           <p>2. Добавляйте расходы</p>
-          <p>3. Получайте &laquo;кто кому платит&raquo;</p>
+          <p>3. Поделитесь ссылкой</p>
         </CardContent>
       </Card>
     </main>

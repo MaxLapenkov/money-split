@@ -7,9 +7,27 @@ type Props = {
   groupId: string;
   dbSettlements: DbSettlement[];
   members: DbGroupMember[];
+  /** Текущий пользователь (участник) */
+  myMemberId: string;
+  /** Создатель группы (организатор) */
+  isOwner: boolean;
 };
 
-export function GroupSettlementsCard({ groupId, dbSettlements, members }: Props) {
+function canMarkSettlementPaid(
+  isOwner: boolean,
+  myMemberId: string,
+  fromGroupMemberId: string,
+) {
+  return isOwner || myMemberId === fromGroupMemberId;
+}
+
+export function GroupSettlementsCard({
+  groupId,
+  dbSettlements,
+  members,
+  myMemberId,
+  isOwner,
+}: Props) {
   const activeSettlements = dbSettlements.filter(
     (s) => s.status === "suggested",
   );
@@ -46,7 +64,13 @@ export function GroupSettlementsCard({ groupId, dbSettlements, members }: Props)
                   {memberMap.get(s.to_group_member_id) ?? "—"}
                 </span>
               </p>
-              <MarkPaidButton settlementId={s.id} groupId={groupId} />
+              {canMarkSettlementPaid(
+                isOwner,
+                myMemberId,
+                s.from_group_member_id,
+              ) ? (
+                <MarkPaidButton settlementId={s.id} groupId={groupId} />
+              ) : null}
             </div>
           ))
         )}

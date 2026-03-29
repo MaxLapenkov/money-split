@@ -45,6 +45,21 @@ export async function getSettlementsByGroupId(
   return (data ?? []) as DbSettlement[];
 }
 
+export async function getSettlementById(
+  settlementId: string
+): Promise<DbSettlement | null> {
+  const sb = createServiceClient();
+
+  const { data, error } = await sb
+    .from("settlements")
+    .select("*")
+    .eq("id", settlementId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data as DbSettlement | null;
+}
+
 export type UpsertSettlementsResult = {
   suggestedRows: DbSettlement[];
   /** true если были delete/insert suggested-строк */

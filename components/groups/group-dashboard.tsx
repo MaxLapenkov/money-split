@@ -61,6 +61,8 @@ export function GroupDashboard({
         groupId={groupId}
         dbSettlements={dbSettlements}
         members={members}
+        myMemberId={myMemberId}
+        isOwner={isOwner}
       />
 
       <GroupViewersCard

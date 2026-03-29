@@ -21,6 +21,9 @@ export function getBackTarget(pathname: string): string | null {
   const groupExpenses = pathname.match(/^\/groups\/([^/]+)\/expenses$/);
   if (groupExpenses) return `/groups/${groupExpenses[1]}`;
 
+  const groupRepayments = pathname.match(/^\/groups\/([^/]+)\/repayments$/);
+  if (groupRepayments) return `/groups/${groupRepayments[1]}`;
+
   const groupOnly = pathname.match(/^\/groups\/([^/]+)$/);
   if (groupOnly) return "/";
 
