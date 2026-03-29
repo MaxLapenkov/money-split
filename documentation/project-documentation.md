@@ -33,6 +33,8 @@
 - [[technical/sql-migrations-plan]]
 - [[technical/participant-binding-model]]
 - [[technical/telegram-miniapp-integration]]
+- [[technical/ton-payments-integration-plan]]
+- [[technical/i18n-implementation-plan]]
 
 ## How We Work
 - Обсуждаем изменения по разделам в связанных заметках.
