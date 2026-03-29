@@ -42,10 +42,10 @@ export function MarkPaidButton({
   return (
     <Button
       size="sm"
-      variant="outline"
+      variant="default"
       onClick={handleClick}
       disabled={loading}
-      className="text-[0.8125rem] shrink-0"
+      className="touch-manipulation shadow-sm text-[0.8125rem] font-semibold"
     >
       {loading ? "..." : "Оплатил"}
     </Button>

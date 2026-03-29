@@ -52,35 +52,36 @@ export function ActiveSettlementsList({
       {optimisticSettlements.map((s) => (
         <div
           key={s.id}
-          className="flex items-center justify-between gap-2"
+          className="flex gap-3 items-center"
         >
-          <p className="text-[0.9375rem] leading-snug">
-            <span className="font-medium">
-              {memberMap.get(s.from_group_member_id) ?? "—"}
-            </span>{" "}
-            переводит{" "}
-            <span className="font-medium">
-              {formatMoney(s.amount_minor)}
-            </span>{" "}
-            →{" "}
-            <span className="font-medium">
-              {memberMap.get(s.to_group_member_id) ?? "—"}
-            </span>
-          </p>
+          <div className="min-w-0 flex-1 flex flex-col gap-0.5 text-[0.9375rem] leading-snug text-foreground">
+            <div>
+              <span className="font-medium">
+                {memberMap.get(s.from_group_member_id) ?? "—"}
+              </span>{" "}
+              должен(а){" "}
+              <span className="font-medium">
+                {memberMap.get(s.to_group_member_id) ?? "—"}
+              </span>
+            </div>
+            <div className="tabular-nums">{formatMoney(s.amount_minor)}</div>
+          </div>
           {canMarkSettlementPaid(
             isOwner,
             myMemberId,
             s.from_group_member_id,
           ) ? (
-            <MarkPaidButton
-              settlementId={s.id}
-              groupId={groupId}
-              onOptimisticStart={() => {
-                startTransition(() => {
-                  markPaidOptimistic(s.id);
-                });
-              }}
-            />
+            <div className="shrink-0">
+              <MarkPaidButton
+                settlementId={s.id}
+                groupId={groupId}
+                onOptimisticStart={() => {
+                  startTransition(() => {
+                    markPaidOptimistic(s.id);
+                  });
+                }}
+              />
+            </div>
           ) : null}
         </div>
       ))}
