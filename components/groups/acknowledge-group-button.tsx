@@ -8,13 +8,19 @@ import { acknowledgeGroupAction } from "@/app/actions/view-events";
 
 interface AcknowledgeGroupButtonProps {
   groupId: string;
+  /** Сразу при клике (до await) — для optimistic UI списка */
+  onOptimisticStart?: () => void;
 }
 
-export function AcknowledgeGroupButton({ groupId }: AcknowledgeGroupButtonProps) {
+export function AcknowledgeGroupButton({
+  groupId,
+  onOptimisticStart,
+}: AcknowledgeGroupButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   async function handleClick() {
+    onOptimisticStart?.();
     setLoading(true);
     try {
       const result = await acknowledgeGroupAction(groupId);
@@ -23,6 +29,7 @@ export function AcknowledgeGroupButton({ groupId }: AcknowledgeGroupButtonProps)
         router.refresh();
       } else {
         toast.error("Не удалось сохранить");
+        router.refresh();
       }
     } finally {
       setLoading(false);

@@ -1,7 +1,6 @@
 import type { DbGroupMember, DbSettlement } from "@/lib/supabase/types";
-import { formatMoney } from "@/lib/money";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MarkPaidButton } from "@/components/groups/mark-paid-button";
+import { ActiveSettlementsList } from "@/components/groups/active-settlements-list";
 
 type Props = {
   groupId: string;
@@ -13,14 +12,6 @@ type Props = {
   isOwner: boolean;
 };
 
-function canMarkSettlementPaid(
-  isOwner: boolean,
-  myMemberId: string,
-  fromGroupMemberId: string,
-) {
-  return isOwner || myMemberId === fromGroupMemberId;
-}
-
 export function GroupSettlementsCard({
   groupId,
   dbSettlements,
@@ -31,7 +22,6 @@ export function GroupSettlementsCard({
   const activeSettlements = dbSettlements.filter(
     (s) => s.status === "suggested",
   );
-  const memberMap = new Map(members.map((m) => [m.id, m.display_name]));
 
   return (
     <Card>
@@ -46,33 +36,13 @@ export function GroupSettlementsCard({
             Все расчёты закрыты
           </p>
         ) : (
-          activeSettlements.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between gap-2"
-            >
-              <p className="text-[0.9375rem] leading-snug">
-                <span className="font-medium">
-                  {memberMap.get(s.from_group_member_id) ?? "—"}
-                </span>{" "}
-                переводит{" "}
-                <span className="font-medium">
-                  {formatMoney(s.amount_minor)}
-                </span>{" "}
-                →{" "}
-                <span className="font-medium">
-                  {memberMap.get(s.to_group_member_id) ?? "—"}
-                </span>
-              </p>
-              {canMarkSettlementPaid(
-                isOwner,
-                myMemberId,
-                s.from_group_member_id,
-              ) ? (
-                <MarkPaidButton settlementId={s.id} groupId={groupId} />
-              ) : null}
-            </div>
-          ))
+          <ActiveSettlementsList
+            groupId={groupId}
+            initialSettlements={activeSettlements}
+            members={members}
+            myMemberId={myMemberId}
+            isOwner={isOwner}
+          />
         )}
       </CardContent>
     </Card>

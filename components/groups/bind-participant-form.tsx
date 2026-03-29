@@ -41,13 +41,18 @@ export function BindParticipantForm({
 
       if (!result.ok) {
         toast.error(actionErrorHint(result.error.code, result.error.message));
+        setLoading(false);
         return;
       }
 
       webApp?.HapticFeedback.impactOccurred("medium");
       router.refresh();
-    } finally {
-      setLoading(false);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(actionErrorHint("INTERNAL_ERROR", error.message));
+        setLoading(false);
+        return;
+      }
     }
   }
 
@@ -66,28 +71,28 @@ export function BindParticipantForm({
           участника в настройках группы.
         </p>
       ) : (
-      <div className="flex flex-col gap-2">
-        {bindableMembers.map((member) => (
-          <button
-            key={member.id}
-            type="button"
-            onClick={() => setSelected(member.id)}
-            className={[
-              "flex items-center justify-between px-4 py-3 rounded-lg border text-left transition-colors",
-              selected === member.id
-                ? "border-primary bg-primary/10 text-foreground"
-                : "border-border bg-card text-foreground hover:bg-muted",
-            ].join(" ")}
-          >
-            <span className="text-[0.9375rem]">{member.display_name}</span>
-            {selected === member.id && (
-              <span className="text-[0.8125rem] text-primary font-medium">
-                Выбрано
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+        <div className="flex flex-col gap-2">
+          {bindableMembers.map((member) => (
+            <button
+              key={member.id}
+              type="button"
+              onClick={() => setSelected(member.id)}
+              className={[
+                "flex items-center justify-between px-4 py-3 rounded-lg border text-left transition-colors",
+                selected === member.id
+                  ? "border-primary bg-primary/10 text-foreground"
+                  : "border-border bg-card text-foreground hover:bg-muted",
+              ].join(" ")}
+            >
+              <span className="text-[0.9375rem]">{member.display_name}</span>
+              {selected === member.id && (
+                <span className="text-[0.8125rem] text-primary font-medium">
+                  Выбрано
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       )}
 
       <Button
@@ -99,9 +104,7 @@ export function BindParticipantForm({
         {loading ? "Сохраняем..." : "Это я"}
       </Button>
 
-      {isOwner && (
-        <DeleteGroupButton groupId={groupId} groupName={groupName} />
-      )}
+      {isOwner && <DeleteGroupButton groupId={groupId} groupName={groupName} />}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { createGroup } from "@/app/actions/groups";
 import { actionErrorHint } from "@/lib/errors/user-hint";
+import { useState } from "react";
 
 const schema = z.object({
   name: z.string().min(1, "Введите название группы").max(120),
@@ -23,6 +24,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export function CreateGroupForm() {
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   const {
@@ -45,10 +47,12 @@ export function CreateGroupForm() {
   });
 
   async function onSubmit(values: FormValues) {
+    setLoading(true);
     const result = await createGroup(values);
 
     if (!result.ok) {
       toast.error(actionErrorHint(result.error.code, result.error.message));
+      setLoading(false);
       return;
     }
 
@@ -142,7 +146,7 @@ export function CreateGroupForm() {
 
       <Button
         type="submit"
-        disabled={!isValid || isSubmitting}
+        disabled={!isValid || isSubmitting || loading}
         className="w-full"
         size="lg"
       >
