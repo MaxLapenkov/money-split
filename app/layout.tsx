@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Toaster } from "@/components/ui/sonner";
 import { WebAppProvider } from "@/components/telegram/web-app-provider";
 import { TelegramBackButton } from "@/components/telegram/back-button";
@@ -37,6 +39,8 @@ export default function RootLayout({
           {children}
           <Toaster />
         </WebAppProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
