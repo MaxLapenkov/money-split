@@ -14,6 +14,25 @@ type TelegramUpdate = {
   message?: TelegramMessage;
 };
 
+function verifyWebhookSecret(request: NextRequest): boolean {
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET?.trim();
+  if (!secret) {
+    return true;
+  }
+  const header = request.headers.get("X-Telegram-Bot-Api-Secret-Token")?.trim();
+  if (header === secret) {
+    return true;
+  }
+  if (!header) {
+    console.warn(
+      "telegram webhook: TELEGRAM_WEBHOOK_SECRET is set but X-Telegram-Bot-Api-Secret-Token is missing. Call setWebhook with secret_token equal to TELEGRAM_WEBHOOK_SECRET, or unset TELEGRAM_WEBHOOK_SECRET.",
+    );
+  } else {
+    console.warn("telegram webhook: secret token does not match TELEGRAM_WEBHOOK_SECRET");
+  }
+  return false;
+}
+
 async function sendWelcomeMessage(chatId: number): Promise<void> {
   const token = process.env.BOT_TOKEN;
   if (!token) {
@@ -70,6 +89,10 @@ function isPrivateStart(update: TelegramUpdate): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  if (!verifyWebhookSecret(request)) {
+    return NextResponse.json({ ok: false }, { status: 401 });
+  }
+
   let update: TelegramUpdate;
   try {
     update = (await request.json()) as TelegramUpdate;
