@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { CreateGroupButton } from "@/components/home/create-group-button";
 import { GroupList } from "@/components/home/group-list";
 import { GroupListSkeleton } from "@/components/home/group-list-skeleton";
+import { SupportButton } from "@/components/home/support-button";
 
 export default function HomePage() {
   return (
@@ -47,6 +48,8 @@ export default function HomePage() {
           <p>3. Поделитесь ссылкой</p>
         </CardContent>
       </Card>
+
+      <SupportButton />
     </main>
   );
 }

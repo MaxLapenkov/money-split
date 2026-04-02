@@ -1,5 +1,5 @@
 const nextConfig = {
-  allowedDevOrigins: ["10.19.77.190"],
+  allowedDevOrigins: ["10.35.3.56"],
 };
 
 export default nextConfig;
