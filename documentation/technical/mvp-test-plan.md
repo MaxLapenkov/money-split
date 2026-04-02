@@ -4,6 +4,7 @@
 Единый чеклист проверки MVP перед демо/релизом: функциональность, интеграции Telegram, безопасность и UX.
 
 ## Test Environment
+- Автотесты расчётов (балансы, сплит, формат денег): `bun test` в корне репозитория.
 - Telegram iOS client.
 - Telegram Android client.
 - Desktop/web fallback (ограниченный сценарий).
