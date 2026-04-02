@@ -17,6 +17,7 @@
 | `NEXT_PUBLIC_BOT_USERNAME` | Имя бота без `@` | Для ссылок invite |
 | `NEXT_PUBLIC_APP_SHORTNAME` | BotFather → Mini App | Короткое имя Web App |
 | `SESSION_SECRET` | Сгенерировать (≥32 символов) | Для подписи сессии (jose) |
+| `TELEGRAM_WEBHOOK_SECRET` | Случайная строка | Совпадает с `secret_token` в `setWebhook`; см. [[technical/telegram-bot-webhook]] |
 
 Секреты не коммитить; в Vercel хранятся зашифрованно.
 
@@ -53,7 +54,8 @@ vercel --prod
 ## После деплоя: Telegram
 
 1. **BotFather** → ваш бот → **Bot Settings** → **Menu Button** / **Configure Mini App** → укажите HTTPS URL продакшена (например `https://your-app.vercel.app`).
-2. Проверьте сценарии: открытие Mini App, auth, создание группы, invite.
+2. Зарегистрируйте **webhook** для приветствия по `/start`: см. [[technical/telegram-bot-webhook]] (`setWebhook` на `https://<your-domain>/api/telegram/webhook` и `TELEGRAM_WEBHOOK_SECRET`).
+3. Проверьте сценарии: открытие Mini App, auth, создание группы, invite, команда `/start` в чате с ботом.
 
 ## Проверка
 
@@ -62,4 +64,5 @@ vercel --prod
 
 ## Related
 - [[technical/release-readiness-checklist]]
+- [[technical/telegram-bot-webhook]]
 - `.env.local.example`

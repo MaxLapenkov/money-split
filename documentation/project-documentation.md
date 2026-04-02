@@ -33,6 +33,7 @@
 - [[technical/sql-migrations-plan]]
 - [[technical/participant-binding-model]]
 - [[technical/telegram-miniapp-integration]]
+- [[technical/telegram-bot-webhook]]
 - [[technical/ton-payments-integration-plan]]
 - [[technical/i18n-implementation-plan]]
 

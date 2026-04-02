@@ -21,6 +21,12 @@
 - `200`: `{ ok: true, userId }`
 - `401`: `{ ok: false, error: { code: "UNAUTHORIZED" } }`
 
+### `POST /api/telegram/webhook`
+- Назначение: приём обновлений от Telegram Bot API (`setWebhook`).
+- Ожидает JSON **Update**; при `message` в личном чате с текстом `/start` отправляет приветствие и кнопку ссылки на Mini App.
+- Заголовок `X-Telegram-Bot-Api-Secret-Token` должен совпадать с `TELEGRAM_WEBHOOK_SECRET`, если переменная задана.
+- Подробнее: [[technical/telegram-bot-webhook]].
+
 ## Groups
 ### `POST /api/groups`
 - Создать группу.
